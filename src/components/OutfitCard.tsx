@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Heart, Plus, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 interface OutfitCardProps {
+  id: string;
   image: string;
   title: string;
   inspiration: string;
@@ -13,6 +15,7 @@ interface OutfitCardProps {
 }
 
 export function OutfitCard({
+  id,
   image,
   title,
   inspiration,
@@ -30,7 +33,7 @@ export function OutfitCard({
       className="group relative bg-card overflow-hidden border border-border hover:border-foreground/20 transition-all duration-500"
     >
       {/* Image */}
-      <div className="relative aspect-[3/4] overflow-hidden">
+      <Link to={`/outfit/${id}`} className="block relative aspect-[3/4] overflow-hidden">
         <img
           src={image}
           alt={title}
@@ -41,7 +44,10 @@ export function OutfitCard({
         <div className="absolute inset-0 bg-gradient-to-t from-pure-black/80 via-pure-black/20 to-transparent" />
         
         {/* Action buttons */}
-        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+        <div 
+          className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0"
+          onClick={(e) => e.preventDefault()}
+        >
           <motion.button 
             whileHover={{ scale: 1.05 }} 
             whileTap={{ scale: 0.95 }}
@@ -68,7 +74,7 @@ export function OutfitCard({
             <span className="text-xs text-white/50">{items} items</span>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="p-5 bg-card">
@@ -84,11 +90,14 @@ export function OutfitCard({
         </div>
 
         <Button 
+          asChild
           variant="outline" 
           className="w-full rounded-none border-foreground text-foreground hover:bg-foreground hover:text-background transition-all duration-300 group/btn h-12"
         >
-          <span className="font-medium">View Look</span>
-          <ArrowUpRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+          <Link to={`/outfit/${id}`}>
+            <span className="font-medium">View Look</span>
+            <ArrowUpRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+          </Link>
         </Button>
       </div>
     </motion.article>
