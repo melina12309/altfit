@@ -70,7 +70,7 @@ export function Hero() {
       </div>
 
       <div className="container relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Text content */}
           <div className="order-2 lg:order-1">
             <motion.div
@@ -87,7 +87,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl md:text-7xl lg:text-8xl font-serif leading-[0.95] mb-8 tracking-tight"
+              className="text-5xl md:text-6xl lg:text-7xl font-serif leading-[0.95] mb-8 tracking-tight"
             >
               <span className="block">Iconic</span>
               <span className="block">looks,</span>
@@ -121,35 +121,14 @@ export function Hero() {
                 Explore Looks
               </Button>
             </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="flex gap-16 mt-16 pt-8 border-t border-foreground/10"
-            >
-              <div>
-                <p className="text-4xl md:text-5xl font-serif tracking-tight">50K+</p>
-                <p className="text-xs text-muted-foreground editorial-spacing mt-2">LOOKS</p>
-              </div>
-              <div>
-                <p className="text-4xl md:text-5xl font-serif tracking-tight">200+</p>
-                <p className="text-xs text-muted-foreground editorial-spacing mt-2">BRANDS</p>
-              </div>
-              <div>
-                <p className="text-4xl md:text-5xl font-serif tracking-tight">4.9</p>
-                <p className="text-xs text-muted-foreground editorial-spacing mt-2">RATING</p>
-              </div>
-            </motion.div>
           </div>
 
-          {/* Animated card carousel */}
+          {/* Animated card carousel - next to the headline */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="order-1 lg:order-2 relative h-[520px] md:h-[600px]"
+            className="order-1 lg:order-2 relative h-[420px] md:h-[500px]"
           >
             {/* Card stack */}
             <div className="relative w-full h-full flex items-center justify-center">
@@ -163,20 +142,20 @@ export function Hero() {
                   <motion.div
                     key={look.id}
                     animate={{
-                      scale: isActive ? 1 : isNext ? 0.9 : isPrev ? 0.85 : 0.8,
-                      x: isActive ? 0 : isNext ? 60 : isPrev ? -60 : 0,
-                      y: isActive ? 0 : isNext ? 20 : isPrev ? 30 : 40,
+                      scale: isActive ? 1 : isNext ? 0.88 : isPrev ? 0.82 : 0.75,
+                      x: isActive ? 0 : isNext ? 50 : isPrev ? -50 : 0,
+                      y: isActive ? 0 : isNext ? 15 : isPrev ? 25 : 35,
                       rotateY: isActive ? 0 : isNext ? -5 : isPrev ? 5 : 0,
                       zIndex: isActive ? 30 : isNext ? 20 : isPrev ? 10 : 0,
-                      opacity: isActive ? 1 : isNext ? 0.5 : isPrev ? 0.3 : 0,
+                      opacity: isActive ? 1 : isNext ? 0.6 : isPrev ? 0.35 : 0,
                     }}
                     transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-                    className="absolute w-72 md:w-80 cursor-pointer"
+                    className="absolute w-64 md:w-72 cursor-pointer"
                     onClick={() => setActiveIndex(index)}
                   >
                     <div className="relative bg-card overflow-hidden shadow-elevated border border-border">
                       {/* Image */}
-                      <div className="relative h-96 md:h-[450px] overflow-hidden">
+                      <div className="relative h-80 md:h-96 overflow-hidden">
                         <img
                           src={look.image}
                           alt={look.title}
@@ -186,10 +165,10 @@ export function Hero() {
                       </div>
 
                       {/* Content overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                        <p className="text-xs text-white/50 mb-2 uppercase editorial-spacing">{look.source}</p>
-                        <h3 className="font-serif text-2xl mb-4">{look.title}</h3>
-                        <div className="flex items-center justify-between border-t border-white/20 pt-4">
+                      <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                        <p className="text-xs text-white/50 mb-1.5 uppercase editorial-spacing">{look.source}</p>
+                        <h3 className="font-serif text-xl mb-3">{look.title}</h3>
+                        <div className="flex items-center justify-between border-t border-white/20 pt-3">
                           <span className="text-sm font-medium">{look.price}</span>
                           <span className="text-xs text-white/50">{look.items} items</span>
                         </div>
@@ -207,13 +186,34 @@ export function Hero() {
                   key={index}
                   onClick={() => setActiveIndex(index)}
                   className={`h-0.5 transition-all duration-300 ${
-                    index === activeIndex ? "w-12 bg-foreground" : "w-6 bg-foreground/20 hover:bg-foreground/40"
+                    index === activeIndex ? "w-10 bg-foreground" : "w-5 bg-foreground/20 hover:bg-foreground/40"
                   }`}
                 />
               ))}
             </div>
           </motion.div>
         </div>
+
+        {/* Stats row below */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="flex gap-16 mt-12 pt-8 border-t border-foreground/10"
+        >
+          <div>
+            <p className="text-4xl md:text-5xl font-serif tracking-tight">50K+</p>
+            <p className="text-xs text-muted-foreground editorial-spacing mt-2">LOOKS</p>
+          </div>
+          <div>
+            <p className="text-4xl md:text-5xl font-serif tracking-tight">200+</p>
+            <p className="text-xs text-muted-foreground editorial-spacing mt-2">BRANDS</p>
+          </div>
+          <div>
+            <p className="text-4xl md:text-5xl font-serif tracking-tight">4.9</p>
+            <p className="text-xs text-muted-foreground editorial-spacing mt-2">RATING</p>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
