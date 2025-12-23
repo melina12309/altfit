@@ -198,6 +198,66 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_outfits: {
+        Row: {
+          budget: number | null
+          created_at: string
+          gender: string
+          id: string
+          items: Json
+          name: string
+          total_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          gender: string
+          id?: string
+          items: Json
+          name: string
+          total_price: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          gender?: string
+          id?: string
+          items?: Json
+          name?: string
+          total_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_wardrobe: {
+        Row: {
+          created_at: string
+          id: string
+          item_data: Json
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_data: Json
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_data?: Json
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

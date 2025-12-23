@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, ArrowLeft, Trash2, MessageSquare, Sparkles } from "lucide-react";
+import { Heart, ArrowLeft, Trash2, MessageSquare, ShoppingBag, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,8 +9,10 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFavorites, removeFavorite } from "@/lib/favorites";
 import { useChatHistory, type Conversation } from "@/hooks/useChatHistory";
+import { useOutfitBuilder, type SavedOutfit } from "@/hooks/useOutfitBuilder";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 import outfit1 from "@/assets/outfit-1.jpg";
 import outfit2 from "@/assets/outfit-2.jpg";
 import outfit3 from "@/assets/outfit-3.jpg";
@@ -46,11 +48,13 @@ const outfitsData: Record<string, { id: string; title: string; inspiration: stri
 export default function Favorites() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [savedOutfits, setSavedOutfits] = useState<SavedOutfit[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getConversations, deleteConversation } = useChatHistory();
+  const { getSavedOutfits, deleteOutfit, generateShareUrl } = useOutfitBuilder();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,12 +69,14 @@ export default function Favorites() {
 
   const loadData = async () => {
     try {
-      const [favorites, convos] = await Promise.all([
+      const [favorites, convos, outfits] = await Promise.all([
         getFavorites(),
         getConversations(),
+        getSavedOutfits(),
       ]);
       setFavoriteIds(favorites);
       setConversations(convos);
+      setSavedOutfits(outfits);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -102,6 +108,36 @@ export default function Favorites() {
         title: "Error",
         description: "Failed to delete conversation",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteOutfit = async (outfitId: string) => {
+    try {
+      await deleteOutfit(outfitId);
+      setSavedOutfits((prev) => prev.filter((o) => o.id !== outfitId));
+      toast({ title: "Outfit deleted" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete outfit",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShareOutfit = async (outfit: SavedOutfit) => {
+    const url = generateShareUrl(outfit.gender, outfit.items, outfit.budget || 300);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with friends",
+      });
+    } catch {
+      toast({
+        title: "Share link",
+        description: url,
       });
     }
   };
@@ -165,7 +201,7 @@ export default function Favorites() {
               <span className="block italic font-light">& history</span>
             </h1>
             <p className="text-muted-foreground max-w-md">
-              Your saved looks and past styling conversations, all in one place.
+              Your saved looks, custom outfits, and past styling conversations.
             </p>
           </motion.div>
         </section>
@@ -173,11 +209,20 @@ export default function Favorites() {
         {/* Tabs */}
         <section className="border-t border-border">
           <div className="container py-8">
-            <Tabs defaultValue="conversations" className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
+            <Tabs defaultValue="outfits" className="w-full">
+              <TabsList className="grid w-full max-w-lg grid-cols-3 mb-8">
+                <TabsTrigger value="outfits" className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  Outfits
+                  {savedOutfits.length > 0 && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      {savedOutfits.length}
+                    </span>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="conversations" className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  Conversations
+                  Chats
                   {conversations.length > 0 && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       {conversations.length}
@@ -186,7 +231,7 @@ export default function Favorites() {
                 </TabsTrigger>
                 <TabsTrigger value="favorites" className="flex items-center gap-2">
                   <Heart className="w-4 h-4" />
-                  Favorites
+                  Likes
                   {favoriteOutfits.length > 0 && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                       {favoriteOutfits.length}
@@ -194,6 +239,99 @@ export default function Favorites() {
                   )}
                 </TabsTrigger>
               </TabsList>
+
+              {/* Saved Outfits Tab */}
+              <TabsContent value="outfits">
+                {savedOutfits.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-20"
+                  >
+                    <ShoppingBag className="w-16 h-16 mx-auto mb-6 text-muted-foreground/30" />
+                    <h2 className="font-serif text-2xl mb-4">No saved outfits yet</h2>
+                    <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
+                      Build and save custom outfits in the Outfit Builder.
+                    </p>
+                    <Button asChild className="rounded-none bg-foreground text-background">
+                      <Link to="/builder">Open Outfit Builder</Link>
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {savedOutfits.map((outfit, index) => (
+                      <motion.div
+                        key={outfit.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        className="group bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 transition-all"
+                      >
+                        {/* Outfit items preview */}
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-serif text-lg truncate">{outfit.name}</h3>
+                            <span className="text-xs text-muted-foreground capitalize">{outfit.gender}</span>
+                          </div>
+                          
+                          {/* Item thumbnails */}
+                          <div className="flex gap-1 mb-4">
+                            {outfit.items.slice(0, 5).map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="w-12 h-12 rounded-lg bg-secondary overflow-hidden flex-shrink-0"
+                              >
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                            {outfit.items.length > 5 && (
+                              <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-xs text-muted-foreground">
+                                +{outfit.items.length - 5}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">€{outfit.total_price}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {outfit.items.length} items
+                            </span>
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {formatDistanceToNow(new Date(outfit.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="border-t border-border p-3 flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleShareOutfit(outfit)}
+                          >
+                            <Share2 className="w-3 h-3 mr-1" />
+                            Share
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteOutfit(outfit.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
 
               {/* Conversations Tab */}
               <TabsContent value="conversations">
@@ -216,9 +354,9 @@ export default function Favorites() {
                     className="text-center py-20"
                   >
                     <Heart className="w-16 h-16 mx-auto mb-6 text-muted-foreground/30" />
-                    <h2 className="font-serif text-2xl mb-4">No saved looks yet</h2>
+                    <h2 className="font-serif text-2xl mb-4">No liked looks yet</h2>
                     <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                      Explore our curated collections and save the looks you love.
+                      Explore our curated collections and like the looks you love.
                     </p>
                     <Button asChild className="rounded-none bg-foreground text-background">
                       <Link to="/">Explore Looks</Link>
