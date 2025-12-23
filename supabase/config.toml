@@ -1,1 +1,7 @@
 project_id = "mqpcwdsdyqlxigppjmlc"
+
+[functions.style-chat]
+verify_jwt = true
+
+[functions.style-suggestions]
+verify_jwt = true

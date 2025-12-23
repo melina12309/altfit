@@ -4,6 +4,8 @@ import { Tv, Star, Calendar, TrendingUp, ArrowRight, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ForYouSection } from "@/components/ForYouSection";
+import { useAuth } from "@/contexts/AuthContext";
 import outfit1 from "@/assets/outfit-1.jpg";
 import outfit2 from "@/assets/outfit-2.jpg";
 import outfit3 from "@/assets/outfit-3.jpg";
@@ -136,6 +138,7 @@ const culturalMoments: CulturalMoment[] = [
 
 export default function Explore() {
   const [activeCategory, setActiveCategory] = useState<Category>("all");
+  const { user } = useAuth();
 
   const filteredMoments = activeCategory === "all" 
     ? culturalMoments 
@@ -147,6 +150,8 @@ export default function Explore() {
       
       <main className="pt-24 pb-16">
         <div className="container">
+          {/* For You Section - only show for logged in users */}
+          {user && <ForYouSection title="Picked for you" />}
           {/* Hero */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
