@@ -10,16 +10,19 @@ interface OutfitCardProps {
 }
 
 export function OutfitCard({ outfit }: OutfitCardProps) {
+  const budgetTiers = outfit.budget_tiers || [];
+  const outfitItems = outfit.outfit || [];
+  
   const [selectedTierIndex, setSelectedTierIndex] = useState(
-    Math.min(1, outfit.budget_tiers.length - 1) // Default to middle tier
+    budgetTiers.length > 0 ? Math.min(1, budgetTiers.length - 1) : 0
   );
   
-  const selectedTier = outfit.budget_tiers[selectedTierIndex];
+  const selectedTier = budgetTiers[selectedTierIndex];
   
-  // Filter items based on selected budget tier
-  const visibleItems = outfit.outfit.filter(item => 
-    selectedTier?.products.includes(item.category)
-  );
+  // Filter items based on selected budget tier, or show all if no tiers
+  const visibleItems = selectedTier?.products 
+    ? outfitItems.filter(item => selectedTier.products.includes(item.category))
+    : outfitItems;
 
   const formatPrice = (price: number) => `€${price}`;
 
@@ -48,10 +51,10 @@ export function OutfitCard({ outfit }: OutfitCardProps) {
       </div>
 
       {/* Budget Tier Selector */}
-      {outfit.budget_tiers.length > 0 && (
+      {budgetTiers.length > 0 && (
         <div className="p-4 border-b border-border bg-secondary/30">
           <div className="flex gap-2">
-            {outfit.budget_tiers.map((tier, index) => (
+            {budgetTiers.map((tier, index) => (
               <button
                 key={tier.label}
                 onClick={() => setSelectedTierIndex(index)}
