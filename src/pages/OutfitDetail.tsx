@@ -1,9 +1,13 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, Share2, ShoppingBag, ExternalLink, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/contexts/AuthContext";
+import { addFavorite, removeFavorite, isFavorite } from "@/lib/favorites";
+import { useToast } from "@/hooks/use-toast";
 import outfit1 from "@/assets/outfit-1.jpg";
 import outfit2 from "@/assets/outfit-2.jpg";
 import outfit3 from "@/assets/outfit-3.jpg";
@@ -270,6 +274,51 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 export default function OutfitDetail() {
   const { id } = useParams<{ id: string }>();
   const outfit = outfitsData[id || "1"];
+  const [isFav, setIsFav] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && id) {
+      isFavorite(id).then(setIsFav).catch(console.error);
+    }
+  }, [id, user]);
+
+  const handleFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save favorites.",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      if (isFav) {
+        await removeFavorite(id);
+        setIsFav(false);
+        toast({ title: "Removed from favorites" });
+      } else {
+        await addFavorite(id);
+        setIsFav(true);
+        toast({ title: "Added to favorites" });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update favorites",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!outfit) {
     return (
@@ -314,8 +363,14 @@ export default function OutfitDetail() {
               />
               {/* Action buttons */}
               <div className="absolute top-4 right-4 flex gap-2">
-                <Button variant="outline" size="icon" className="bg-background/90 backdrop-blur-sm rounded-none h-10 w-10">
-                  <Heart className="w-4 h-4" />
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleFavorite}
+                  disabled={loading}
+                  className={`bg-background/90 backdrop-blur-sm rounded-none h-10 w-10 ${isFav ? "text-red-500" : ""}`}
+                >
+                  <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
                 </Button>
                 <Button variant="outline" size="icon" className="bg-background/90 backdrop-blur-sm rounded-none h-10 w-10">
                   <Share2 className="w-4 h-4" />
@@ -377,9 +432,15 @@ export default function OutfitDetail() {
                   <ShoppingBag className="w-4 h-4 mr-3" />
                   Shop All Items
                 </Button>
-                <Button variant="outline" size="lg" className="flex-1 rounded-none border-foreground h-14">
-                  <Heart className="w-4 h-4 mr-3" />
-                  Save Look
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={handleFavorite}
+                  disabled={loading}
+                  className={`flex-1 rounded-none border-foreground h-14 ${isFav ? "bg-foreground/5" : ""}`}
+                >
+                  <Heart className={`w-4 h-4 mr-3 ${isFav ? "fill-current text-red-500" : ""}`} />
+                  {isFav ? "Saved" : "Save Look"}
                 </Button>
               </div>
             </motion.div>

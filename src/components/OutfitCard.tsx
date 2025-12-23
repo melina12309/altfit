@@ -1,7 +1,11 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Heart, Plus, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { addFavorite, removeFavorite, isFavorite } from "@/lib/favorites";
+import { useToast } from "@/hooks/use-toast";
 
 interface OutfitCardProps {
   id: string;
@@ -24,6 +28,53 @@ export function OutfitCard({
   tags,
   index = 0,
 }: OutfitCardProps) {
+  const [isFav, setIsFav] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      isFavorite(id).then(setIsFav).catch(console.error);
+    }
+  }, [id, user]);
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save favorites.",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isFav) {
+        await removeFavorite(id);
+        setIsFav(false);
+        toast({ title: "Removed from favorites" });
+      } else {
+        await addFavorite(id);
+        setIsFav(true);
+        toast({ title: "Added to favorites" });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update favorites",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 30 }}
@@ -51,9 +102,13 @@ export function OutfitCard({
           <motion.button 
             whileHover={{ scale: 1.05 }} 
             whileTap={{ scale: 0.95 }}
-            className="h-10 w-10 bg-background flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
+            onClick={handleFavorite}
+            disabled={loading}
+            className={`h-10 w-10 bg-background flex items-center justify-center transition-colors ${
+              isFav ? "text-red-500" : "hover:bg-foreground hover:text-background"
+            }`}
           >
-            <Heart className="w-4 h-4" />
+            <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
           </motion.button>
           <motion.button 
             whileHover={{ scale: 1.05 }} 

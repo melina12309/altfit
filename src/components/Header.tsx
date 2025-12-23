@@ -1,11 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, Heart, User } from "lucide-react";
+import { Menu, X, Search, Heart, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -39,10 +54,34 @@ export function Header() {
           <Button variant="ghost" size="icon">
             <Heart className="w-5 h-5" />
           </Button>
-          <Button variant="outline" size="sm">
-            <User className="w-4 h-4 mr-2" />
-            Sign In
-          </Button>
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="w-4 h-4" />
+                  Account
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem className="text-muted-foreground text-xs">
+                  {user.email}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/auth">
+                <User className="w-4 h-4 mr-2" />
+                Sign In
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -101,9 +140,26 @@ export function Header() {
                 <Button variant="ghost" size="icon">
                   <Heart className="w-5 h-5" />
                 </Button>
-                <Button variant="outline" size="sm" className="ml-auto">
-                  Sign In
-                </Button>
+                {user ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="ml-auto"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" size="sm" className="ml-auto">
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                      Sign In
+                    </Link>
+                  </Button>
+                )}
               </div>
             </nav>
           </motion.div>
