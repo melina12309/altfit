@@ -107,6 +107,29 @@ serve(async (req) => {
 
     console.log("Authenticated user:", user.id);
 
+    // Check rate limit using database function
+    const { data: rateLimitOk, error: rateLimitError } = await supabaseClient
+      .rpc('check_rate_limit', {
+        p_user_id: user.id,
+        p_endpoint: 'style-chat',
+        p_max_requests: 20,
+        p_window_minutes: 1
+      });
+
+    if (rateLimitError) {
+      console.error("Rate limit check failed:", rateLimitError.message);
+      // Continue processing if rate limit check fails (fail-open for better UX)
+      // Consider fail-closed in production for stricter security
+    } else if (!rateLimitOk) {
+      console.warn("Rate limit exceeded for user:", user.id);
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment before trying again." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Rate limit check passed for user:", user.id);
+
     // Parse and validate request body
     let body: unknown;
     try {
