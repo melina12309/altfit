@@ -1,10 +1,10 @@
 project_id = "mqpcwdsdyqlxigppjmlc"
 
 [functions.style-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.style-suggestions]
-verify_jwt = true
+verify_jwt = false
 
 [functions.products-search]
 verify_jwt = false
