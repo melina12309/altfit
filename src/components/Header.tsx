@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass } from "lucide-react";
+import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,15 +36,16 @@ export function Header() {
             <Sparkles className="w-3.5 h-3.5" />
             AI STYLIST
           </Link>
+          <Link to="/builder" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors flex items-center gap-1.5">
+            <Wand2 className="w-3.5 h-3.5" />
+            BUILDER
+          </Link>
           <Link to="/explore" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors flex items-center gap-1.5">
             <Compass className="w-3.5 h-3.5" />
             EXPLORE
           </Link>
           <a href="/#discover" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             DISCOVER
-          </a>
-          <a href="/#how-it-works" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
-            HOW IT WORKS
           </a>
         </nav>
 
@@ -131,6 +132,14 @@ export function Header() {
                 AI STYLIST
               </Link>
               <Link
+                to="/builder"
+                className="text-sm editorial-spacing py-2 flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Wand2 className="w-4 h-4" />
+                BUILDER
+              </Link>
+              <Link
                 to="/explore"
                 className="text-sm editorial-spacing py-2 flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
@@ -144,13 +153,6 @@ export function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 DISCOVER
-              </a>
-              <a
-                href="/#how-it-works"
-                className="text-sm editorial-spacing py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                HOW IT WORKS
               </a>
               <div className="flex items-center gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" size="icon">
