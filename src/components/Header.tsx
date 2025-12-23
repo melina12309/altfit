@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, Heart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,21 +11,24 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
       <div className="container flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
-        <a href="/" className="font-serif text-2xl md:text-3xl tracking-tight">
+        <Link to="/" className="font-serif text-2xl md:text-3xl tracking-tight">
           MUSE
-        </a>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#discover" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
+          <a href="/#discover" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             DISCOVER
           </a>
-          <a href="#how-it-works" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
+          <a href="/#how-it-works" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             HOW IT WORKS
           </a>
-          <a href="#collections" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
+          <a href="/#collections" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             COLLECTIONS
           </a>
+          <Link to="/outfit/1" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
+            OUTFIT DETAIL
+          </Link>
         </nav>
 
         {/* Desktop Actions */}
@@ -63,26 +67,33 @@ export function Header() {
           >
             <nav className="container py-6 flex flex-col gap-4">
               <a
-                href="#discover"
+                href="/#discover"
                 className="text-sm editorial-spacing py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 DISCOVER
               </a>
               <a
-                href="#how-it-works"
+                href="/#how-it-works"
                 className="text-sm editorial-spacing py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 HOW IT WORKS
               </a>
               <a
-                href="#collections"
+                href="/#collections"
                 className="text-sm editorial-spacing py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
                 COLLECTIONS
               </a>
+              <Link
+                to="/outfit/1"
+                className="text-sm editorial-spacing py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                OUTFIT DETAIL
+              </Link>
               <div className="flex items-center gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" size="icon">
                   <Search className="w-5 h-5" />
