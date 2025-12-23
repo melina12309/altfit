@@ -43,6 +43,8 @@ export function getTextWithoutOutfit(content: string): string {
   return content.replace(/<outfit>[\s\S]*?<\/outfit>/g, "").trim();
 }
 
+import { supabase } from "@/integrations/supabase/client";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/style-chat`;
 
 export async function streamChat({
@@ -57,11 +59,19 @@ export async function streamChat({
   onError: (error: string) => void;
 }) {
   try {
+    // Get the current user's session for authentication
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      onError("Please sign in to use the style assistant");
+      return;
+    }
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ messages }),
     });
