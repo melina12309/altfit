@@ -7,6 +7,7 @@ import outfit3 from "@/assets/outfit-3.jpg";
 
 const outfits = [
   {
+    id: "1",
     image: outfit1,
     title: "The Power Look",
     inspiration: "Street Style",
@@ -15,6 +16,7 @@ const outfits = [
     tags: ["Minimal", "Chic", "Zara"],
   },
   {
+    id: "2",
     image: outfit2,
     title: "Urban Essential",
     inspiration: "Fashion Week",
@@ -23,6 +25,7 @@ const outfits = [
     tags: ["Modern", "Sleek", "COS"],
   },
   {
+    id: "3",
     image: outfit3,
     title: "Evening Edit",
     inspiration: "Editorial",
