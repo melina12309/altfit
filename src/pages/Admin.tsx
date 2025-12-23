@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,10 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Package, 
@@ -20,13 +24,16 @@ import {
   TrendingUp, 
   ShoppingBag,
   Tag,
-  Palette,
   Users,
   CheckCircle,
   XCircle,
   Loader2,
   Search,
-  Filter
+  Trash2,
+  Eye,
+  EyeOff,
+  Shield,
+  AlertTriangle
 } from "lucide-react";
 
 interface ImportResult {
@@ -44,6 +51,8 @@ interface ImportResult {
 
 interface ProductStats {
   total: number;
+  active: number;
+  inactive: number;
   byCategory: Record<string, number>;
   byGender: Record<string, number>;
   byBrand: { brand: string; count: number }[];
@@ -61,11 +70,17 @@ interface Product {
   currency: string;
   retailer: string;
   image_url: string;
+  is_active: boolean;
   created_at: string;
 }
 
 export default function Admin() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [checkingRole, setCheckingRole] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
   const [importLogs, setImportLogs] = useState<string[]>([]);
@@ -76,19 +91,63 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) {
+        setCheckingRole(false);
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking admin role:", error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(!!data);
+        }
+      } catch (error) {
+        console.error("Error checking admin role:", error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingRole(false);
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
 
   useEffect(() => {
-    fetchStats();
-    fetchProducts();
-  }, []);
+    if (!checkingRole && isAdmin) {
+      fetchStats();
+      fetchProducts();
+    }
+  }, [checkingRole, isAdmin]);
 
   const fetchStats = async () => {
     try {
-      // Fetch total count
+      // Fetch total and active counts
       const { count: total } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
         .eq("provider", "awin_feed");
+
+      const { count: active } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("provider", "awin_feed")
+        .eq("is_active", true);
 
       // Fetch category breakdown
       const { data: categoryData } = await supabase
@@ -144,6 +203,8 @@ export default function Admin() {
 
       setStats({
         total: total || 0,
+        active: active || 0,
+        inactive: (total || 0) - (active || 0),
         byCategory,
         byGender,
         byBrand,
@@ -160,7 +221,7 @@ export default function Admin() {
     try {
       let query = supabase
         .from("products")
-        .select("id, title, brand, category, gender, price, currency, retailer, image_url, created_at")
+        .select("id, title, brand, category, gender, price, currency, retailer, image_url, is_active, created_at")
         .eq("provider", "awin_feed")
         .order("created_at", { ascending: false })
         .limit(100);
@@ -173,6 +234,9 @@ export default function Admin() {
       }
       if (genderFilter !== "all") {
         query = query.eq("gender", genderFilter);
+      }
+      if (statusFilter !== "all") {
+        query = query.eq("is_active", statusFilter === "active");
       }
 
       const { data, error } = await query;
@@ -187,11 +251,153 @@ export default function Admin() {
   };
 
   useEffect(() => {
+    if (!isAdmin) return;
     const debounce = setTimeout(() => {
       fetchProducts();
     }, 300);
     return () => clearTimeout(debounce);
-  }, [searchQuery, categoryFilter, genderFilter]);
+  }, [searchQuery, categoryFilter, genderFilter, statusFilter, isAdmin]);
+
+  const toggleProductActive = async (productId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_active: !isActive })
+        .eq("id", productId);
+
+      if (error) throw error;
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, is_active: !isActive } : p))
+      );
+
+      toast({
+        title: isActive ? "Product Deactivated" : "Product Activated",
+        description: `Product has been ${isActive ? "deactivated" : "activated"}`,
+      });
+
+      fetchStats();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update product status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteProduct = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId);
+
+      if (error) throw error;
+
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      setSelectedProducts((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+
+      toast({
+        title: "Product Deleted",
+        description: "Product has been permanently deleted",
+      });
+
+      fetchStats();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkToggleActive = async (activate: boolean) => {
+    if (selectedProducts.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_active: activate })
+        .in("id", Array.from(selectedProducts));
+
+      if (error) throw error;
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedProducts.has(p.id) ? { ...p, is_active: activate } : p
+        )
+      );
+
+      toast({
+        title: activate ? "Products Activated" : "Products Deactivated",
+        description: `${selectedProducts.size} products updated`,
+      });
+
+      setSelectedProducts(new Set());
+      fetchStats();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update products",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedProducts.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .in("id", Array.from(selectedProducts));
+
+      if (error) throw error;
+
+      setProducts((prev) => prev.filter((p) => !selectedProducts.has(p.id)));
+
+      toast({
+        title: "Products Deleted",
+        description: `${selectedProducts.size} products permanently deleted`,
+      });
+
+      setSelectedProducts(new Set());
+      fetchStats();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete products",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleSelectProduct = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(products.map((p) => p.id)));
+    }
+  };
 
   const runImport = async () => {
     setIsImporting(true);
@@ -241,7 +447,6 @@ export default function Admin() {
         description: `Successfully imported ${totalImported} products`,
       });
 
-      // Refresh stats
       fetchStats();
       fetchProducts();
     } catch (error) {
@@ -297,14 +502,86 @@ export default function Admin() {
     }
   };
 
+  // Loading state
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container py-24 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-muted-foreground">Checking permissions...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container py-24 flex items-center justify-center">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <CardTitle>Authentication Required</CardTitle>
+              <CardDescription>
+                Please sign in to access the admin dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container py-24 flex items-center justify-center">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
+              <CardTitle>Access Denied</CardTitle>
+              <CardDescription>
+                You don't have permission to access the admin dashboard. 
+                Contact an administrator if you believe this is an error.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+                Return to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1 container py-24">
         <div className="space-y-2 mb-8">
-          <h1 className="font-serif text-4xl">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage product imports and view inventory statistics</p>
+          <div className="flex items-center gap-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <h1 className="font-serif text-4xl">Admin Dashboard</h1>
+          </div>
+          <p className="text-muted-foreground">Manage product imports and inventory</p>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -331,6 +608,34 @@ export default function Admin() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+                  <Eye className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">
+                    {stats?.active.toLocaleString() || "—"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats ? ((stats.active / stats.total) * 100).toFixed(1) : 0}% of total
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Inactive Products</CardTitle>
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-muted-foreground">
+                    {stats?.inactive.toLocaleString() || "—"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Hidden from catalog</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium">Avg. Price</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -341,32 +646,6 @@ export default function Admin() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Range: €{stats?.priceRange.min.toFixed(0)} - €{stats?.priceRange.max.toFixed(0)}
                   </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Categories</CardTitle>
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
-                    {stats ? Object.keys(stats.byCategory).length : "—"}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Product categories</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Brands</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">
-                    {stats?.byBrand.length || "—"}+
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Unique brands</p>
                 </CardContent>
               </Card>
             </div>
@@ -539,7 +818,7 @@ export default function Admin() {
             <Card>
               <CardHeader>
                 <CardTitle>Product Inventory</CardTitle>
-                <CardDescription>Browse and search imported products</CardDescription>
+                <CardDescription>Browse, manage, and delete products</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Filters */}
@@ -577,48 +856,117 @@ export default function Admin() {
                       <SelectItem value="unisex">Unisex</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button variant="outline" size="icon" onClick={fetchProducts}>
                     <RefreshCw className={`h-4 w-4 ${productsLoading ? "animate-spin" : ""}`} />
                   </Button>
                 </div>
+
+                {/* Bulk Actions */}
+                {selectedProducts.size > 0 && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">
+                      {selectedProducts.size} selected
+                    </span>
+                    <Button size="sm" variant="outline" onClick={() => bulkToggleActive(true)}>
+                      <Eye className="h-4 w-4 mr-1" />
+                      Activate
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => bulkToggleActive(false)}>
+                      <EyeOff className="h-4 w-4 mr-1" />
+                      Deactivate
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {selectedProducts.size} products?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. These products will be permanently deleted.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={bulkDelete} className="bg-destructive text-destructive-foreground">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedProducts(new Set())}>
+                      Clear
+                    </Button>
+                  </div>
+                )}
 
                 {/* Products Table */}
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[80px]">Image</TableHead>
+                        <TableHead className="w-[40px]">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.size === products.length && products.length > 0}
+                            onChange={toggleSelectAll}
+                            className="rounded border-input"
+                          />
+                        </TableHead>
+                        <TableHead className="w-[60px]">Image</TableHead>
                         <TableHead>Title</TableHead>
                         <TableHead>Brand</TableHead>
                         <TableHead>Category</TableHead>
-                        <TableHead>Gender</TableHead>
                         <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="w-[80px]">Status</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {productsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
+                          <TableCell colSpan={8} className="text-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                           </TableCell>
                         </TableRow>
                       ) : products.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             No products found
                           </TableCell>
                         </TableRow>
                       ) : (
                         products.map((product) => (
-                          <TableRow key={product.id}>
+                          <TableRow key={product.id} className={!product.is_active ? "opacity-60" : ""}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product.id)}
+                                onChange={() => toggleSelectProduct(product.id)}
+                                className="rounded border-input"
+                              />
+                            </TableCell>
                             <TableCell>
                               <img
                                 src={product.image_url}
                                 alt={product.title}
-                                className="w-12 h-12 object-cover rounded"
+                                className="w-10 h-10 object-cover rounded"
                               />
                             </TableCell>
-                            <TableCell className="max-w-[300px] truncate font-medium">
+                            <TableCell className="max-w-[250px] truncate font-medium">
                               {product.title}
                             </TableCell>
                             <TableCell>{product.brand}</TableCell>
@@ -627,9 +975,40 @@ export default function Admin() {
                                 {product.category}
                               </Badge>
                             </TableCell>
-                            <TableCell className="capitalize">{product.gender}</TableCell>
                             <TableCell className="text-right">
                               {product.currency} {product.price.toFixed(2)}
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={product.is_active}
+                                onCheckedChange={() => toggleProductActive(product.id, product.is_active)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete "{product.title}".
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => deleteProduct(product.id)}
+                                      className="bg-destructive text-destructive-foreground"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </TableCell>
                           </TableRow>
                         ))
