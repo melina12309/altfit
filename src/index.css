@@ -40,9 +40,11 @@
     --sand: 35 25% 90%;
     --charcoal: 30 10% 12%;
     --warm-gray: 30 8% 45%;
-    --terracotta: 25 50% 50%;
-    --sage: 150 15% 45%;
-    --blush: 15 40% 90%;
+    --terracotta: 15 75% 55%;
+    --sage: 160 35% 42%;
+    --blush: 350 65% 65%;
+    --gold: 45 85% 55%;
+    --violet: 270 50% 60%;
 
     /* Typography */
     --font-serif: 'Playfair Display', Georgia, serif;
