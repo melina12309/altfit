@@ -9,12 +9,40 @@ export type Suggestion = {
   category: "tv" | "celebrities" | "events" | "vibes";
 };
 
+export type SuggestionFeedback = {
+  suggestion_title: string;
+  feedback_type: "saved" | "dismissed";
+};
+
 export function useSuggestions() {
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [savedSuggestions, setSavedSuggestions] = useState<string[]>([]);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasData, setHasData] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load user's feedback history
+  const loadFeedback = useCallback(async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("suggestion_feedback")
+      .select("suggestion_title, feedback_type")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Failed to load feedback:", error);
+      return;
+    }
+
+    const saved = data?.filter(f => f.feedback_type === "saved").map(f => f.suggestion_title) || [];
+    const dismissed = data?.filter(f => f.feedback_type === "dismissed").map(f => f.suggestion_title) || [];
+    
+    setSavedSuggestions(saved);
+    setDismissedSuggestions(dismissed);
+  }, [user]);
 
   const fetchSuggestions = useCallback(async () => {
     if (!user) {
@@ -57,7 +85,13 @@ export function useSuggestions() {
       }
 
       const data = await response.json();
-      setSuggestions(data.suggestions || []);
+      
+      // Filter out dismissed suggestions
+      const filteredSuggestions = (data.suggestions || []).filter(
+        (s: Suggestion) => !dismissedSuggestions.includes(s.title)
+      );
+      
+      setSuggestions(filteredSuggestions);
       setHasData(data.hasData || false);
     } catch (err) {
       console.error("Failed to fetch suggestions:", err);
@@ -65,17 +99,92 @@ export function useSuggestions() {
     } finally {
       setLoading(false);
     }
+  }, [user, dismissedSuggestions]);
+
+  // Save a suggestion (like it)
+  const saveSuggestion = useCallback(async (suggestion: Suggestion) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("suggestion_feedback")
+      .upsert([{
+        user_id: user.id,
+        suggestion_title: suggestion.title,
+        suggestion_category: suggestion.category,
+        feedback_type: "saved",
+      }], { onConflict: "user_id,suggestion_title" });
+
+    if (error) {
+      console.error("Failed to save suggestion:", error);
+      throw error;
+    }
+
+    setSavedSuggestions(prev => [...prev, suggestion.title]);
   }, [user]);
 
+  // Dismiss a suggestion (hide it)
+  const dismissSuggestion = useCallback(async (suggestion: Suggestion) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("suggestion_feedback")
+      .upsert([{
+        user_id: user.id,
+        suggestion_title: suggestion.title,
+        suggestion_category: suggestion.category,
+        feedback_type: "dismissed",
+      }], { onConflict: "user_id,suggestion_title" });
+
+    if (error) {
+      console.error("Failed to dismiss suggestion:", error);
+      throw error;
+    }
+
+    setDismissedSuggestions(prev => [...prev, suggestion.title]);
+    setSuggestions(prev => prev.filter(s => s.title !== suggestion.title));
+  }, [user]);
+
+  // Undo dismiss
+  const undoDismiss = useCallback(async (suggestionTitle: string) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("suggestion_feedback")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("suggestion_title", suggestionTitle);
+
+    if (error) {
+      console.error("Failed to undo dismiss:", error);
+      throw error;
+    }
+
+    setDismissedSuggestions(prev => prev.filter(t => t !== suggestionTitle));
+  }, [user]);
+
+  // Load feedback on mount
   useEffect(() => {
-    fetchSuggestions();
-  }, [fetchSuggestions]);
+    loadFeedback();
+  }, [loadFeedback]);
+
+  // Fetch suggestions after feedback is loaded
+  useEffect(() => {
+    if (user) {
+      fetchSuggestions();
+    }
+  }, [user, dismissedSuggestions.length]);
 
   return {
     suggestions,
+    savedSuggestions,
+    dismissedSuggestions,
     loading,
     hasData,
     error,
     refresh: fetchSuggestions,
+    saveSuggestion,
+    dismissSuggestion,
+    undoDismiss,
+    isSaved: (title: string) => savedSuggestions.includes(title),
   };
 }
