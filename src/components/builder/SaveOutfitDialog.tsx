@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ interface SaveOutfitDialogProps {
   onSave: (name: string) => void;
   totalPrice: number;
   itemCount: number;
+  defaultName?: string;
 }
 
 export function SaveOutfitDialog({
@@ -18,8 +19,15 @@ export function SaveOutfitDialog({
   onSave,
   totalPrice,
   itemCount,
+  defaultName,
 }: SaveOutfitDialogProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName || "");
+
+  useEffect(() => {
+    if (open) {
+      setName(defaultName || "");
+    }
+  }, [open, defaultName]);
 
   const handleSave = () => {
     if (name.trim()) {
