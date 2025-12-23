@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Bookmark, ArrowUpRight } from "lucide-react";
+import { Heart, Plus, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OutfitCardProps {
@@ -27,64 +27,56 @@ export function OutfitCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{ y: -6 }}
-      className="group relative bg-card rounded-2xl overflow-hidden border border-hot-pink/10 hover:border-hot-pink/30 shadow-soft hover:shadow-elevated transition-all duration-500"
+      className="group relative bg-card overflow-hidden border border-border hover:border-foreground/20 transition-all duration-500"
     >
-      {/* Pink accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-hot-pink via-fuchsia to-rose z-10" />
-      
       {/* Image */}
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
           src={image}
           alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
         />
         
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-pure-black/80 via-pure-black/20 to-transparent" />
         
         {/* Action buttons */}
-        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
           <motion.button 
-            whileHover={{ scale: 1.1 }} 
+            whileHover={{ scale: 1.05 }} 
             whileTap={{ scale: 0.95 }}
-            className="h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+            className="h-10 w-10 bg-background flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
           >
-            <Heart className="w-4 h-4 text-hot-pink" />
+            <Heart className="w-4 h-4" />
           </motion.button>
           <motion.button 
-            whileHover={{ scale: 1.1 }} 
+            whileHover={{ scale: 1.05 }} 
             whileTap={{ scale: 0.95 }}
-            className="h-10 w-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+            className="h-10 w-10 bg-background flex items-center justify-center hover:bg-foreground hover:text-background transition-colors"
           >
-            <Bookmark className="w-4 h-4 text-foreground" />
+            <Plus className="w-4 h-4" />
           </motion.button>
         </div>
 
         {/* Bottom content overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <p className="text-xs text-white/70 mb-1 uppercase editorial-spacing">{inspiration}</p>
-          <h3 className="font-serif text-xl text-white mb-3">{title}</h3>
+        <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+          <p className="text-xs text-white/50 mb-1 uppercase editorial-spacing">{inspiration}</p>
+          <h3 className="font-serif text-xl mb-4">{title}</h3>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1.5 bg-gradient-to-r from-hot-pink to-fuchsia text-white text-xs font-semibold rounded-full shadow-lg">
-                {priceRange}
-              </span>
-              <span className="text-xs text-white/70">{items} items</span>
-            </div>
+          <div className="flex items-center justify-between border-t border-white/20 pt-4">
+            <span className="text-sm font-medium">{priceRange}</span>
+            <span className="text-xs text-white/50">{items} items</span>
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="p-5 bg-card">
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-5">
           {tags.map((tag) => (
             <span
               key={tag}
-              className="text-xs px-3 py-1.5 bg-parisian-pink rounded-full text-foreground/70 font-medium"
+              className="text-xs px-3 py-1.5 border border-border text-muted-foreground font-medium"
             >
               {tag}
             </span>
@@ -93,7 +85,7 @@ export function OutfitCard({
 
         <Button 
           variant="outline" 
-          className="w-full rounded-xl border-hot-pink/20 hover:bg-gradient-to-r hover:from-hot-pink hover:to-fuchsia hover:text-white hover:border-transparent transition-all duration-300 group/btn"
+          className="w-full rounded-none border-foreground text-foreground hover:bg-foreground hover:text-background transition-all duration-300 group/btn h-12"
         >
           <span className="font-medium">View Look</span>
           <ArrowUpRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
