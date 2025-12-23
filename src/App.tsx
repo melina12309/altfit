@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import OutfitDetail from "./pages/OutfitDetail";
 import Auth from "./pages/Auth";
 import Favorites from "./pages/Favorites";
+import Stylist from "./pages/Stylist";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/outfit/:id" element={<OutfitDetail />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/stylist" element={<Stylist />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
