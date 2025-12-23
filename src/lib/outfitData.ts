@@ -1,3 +1,5 @@
+export type Gender = "women" | "men";
+
 export interface OutfitItemData {
   id: string;
   category: "top" | "bottom" | "shoes" | "bag" | "accessory";
@@ -7,169 +9,276 @@ export interface OutfitItemData {
   image: string;
   shopUrl?: string;
   isLocked?: boolean;
+  gender: Gender;
 }
 
 export interface OutfitAlternative extends OutfitItemData {
   originalItemId: string;
 }
 
-export const SAMPLE_OUTFIT: OutfitItemData[] = [
-  {
-    id: "top-1",
-    category: "top",
-    name: "Oversized Blazer",
-    brand: "Zara",
-    price: 89,
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop",
-    shopUrl: "https://zara.com",
-  },
-  {
-    id: "bottom-1",
-    category: "bottom",
-    name: "Wide Leg Trousers",
-    brand: "COS",
-    price: 79,
-    image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
-    shopUrl: "https://cos.com",
-  },
-  {
-    id: "shoes-1",
-    category: "shoes",
-    name: "Leather Loafers",
-    brand: "Mango",
-    price: 59,
-    image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=500&fit=crop",
-    shopUrl: "https://mango.com",
-  },
-  {
-    id: "bag-1",
-    category: "bag",
-    name: "Structured Tote",
-    brand: "& Other Stories",
-    price: 129,
-    image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=500&fit=crop",
-    shopUrl: "https://stories.com",
-  },
-  {
-    id: "accessory-1",
-    category: "accessory",
-    name: "Gold Hoop Earrings",
-    brand: "H&M",
-    price: 12,
-    image: "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400&h=500&fit=crop",
-    shopUrl: "https://hm.com",
-  },
-];
+export const SAMPLE_OUTFITS: Record<Gender, OutfitItemData[]> = {
+  women: [
+    {
+      id: "w-top-1",
+      category: "top",
+      name: "Oversized Blazer",
+      brand: "Zara",
+      price: 89,
+      image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop",
+      shopUrl: "https://zara.com",
+      gender: "women",
+    },
+    {
+      id: "w-bottom-1",
+      category: "bottom",
+      name: "Wide Leg Trousers",
+      brand: "COS",
+      price: 79,
+      image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
+      shopUrl: "https://cos.com",
+      gender: "women",
+    },
+    {
+      id: "w-shoes-1",
+      category: "shoes",
+      name: "Leather Loafers",
+      brand: "Mango",
+      price: 59,
+      image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=500&fit=crop",
+      shopUrl: "https://mango.com",
+      gender: "women",
+    },
+    {
+      id: "w-bag-1",
+      category: "bag",
+      name: "Structured Tote",
+      brand: "& Other Stories",
+      price: 129,
+      image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=500&fit=crop",
+      shopUrl: "https://stories.com",
+      gender: "women",
+    },
+    {
+      id: "w-accessory-1",
+      category: "accessory",
+      name: "Gold Hoop Earrings",
+      brand: "H&M",
+      price: 12,
+      image: "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400&h=500&fit=crop",
+      shopUrl: "https://hm.com",
+      gender: "women",
+    },
+  ],
+  men: [
+    {
+      id: "m-top-1",
+      category: "top",
+      name: "Cotton Oxford Shirt",
+      brand: "COS",
+      price: 69,
+      image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=500&fit=crop",
+      shopUrl: "https://cos.com",
+      gender: "men",
+    },
+    {
+      id: "m-bottom-1",
+      category: "bottom",
+      name: "Slim Chinos",
+      brand: "Zara",
+      price: 49,
+      image: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop",
+      shopUrl: "https://zara.com",
+      gender: "men",
+    },
+    {
+      id: "m-shoes-1",
+      category: "shoes",
+      name: "Leather Sneakers",
+      brand: "Mango",
+      price: 79,
+      image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=500&fit=crop",
+      shopUrl: "https://mango.com",
+      gender: "men",
+    },
+    {
+      id: "m-bag-1",
+      category: "bag",
+      name: "Canvas Messenger",
+      brand: "Arket",
+      price: 89,
+      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=500&fit=crop",
+      shopUrl: "https://arket.com",
+      gender: "men",
+    },
+    {
+      id: "m-accessory-1",
+      category: "accessory",
+      name: "Leather Belt",
+      brand: "H&M",
+      price: 19,
+      image: "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=400&h=500&fit=crop",
+      shopUrl: "https://hm.com",
+      gender: "men",
+    },
+  ],
+};
+
+// Keep SAMPLE_OUTFIT for backwards compatibility
+export const SAMPLE_OUTFIT = SAMPLE_OUTFITS.women;
 
 export const ALTERNATIVES: Record<string, OutfitAlternative[]> = {
-  "top-1": [
+  // Women's alternatives
+  "w-top-1": [
     {
-      id: "top-alt-1",
-      originalItemId: "top-1",
+      id: "w-top-alt-1",
+      originalItemId: "w-top-1",
       category: "top",
       name: "Structured Blazer",
       brand: "H&M",
       price: 49,
       image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
       shopUrl: "https://hm.com",
+      gender: "women",
     },
     {
-      id: "top-alt-2",
-      originalItemId: "top-1",
+      id: "w-top-alt-2",
+      originalItemId: "w-top-1",
       category: "top",
       name: "Linen Blend Blazer",
       brand: "Arket",
       price: 149,
       image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop",
       shopUrl: "https://arket.com",
-    },
-    {
-      id: "top-alt-3",
-      originalItemId: "top-1",
-      category: "top",
-      name: "Vintage Wool Blazer",
-      brand: "Vestiaire",
-      price: 85,
-      image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop",
-      shopUrl: "https://vestiairecollective.com",
+      gender: "women",
     },
   ],
-  "bottom-1": [
+  "w-bottom-1": [
     {
-      id: "bottom-alt-1",
-      originalItemId: "bottom-1",
+      id: "w-bottom-alt-1",
+      originalItemId: "w-bottom-1",
       category: "bottom",
       name: "Pleated Trousers",
       brand: "Zara",
       price: 45,
       image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
       shopUrl: "https://zara.com",
-    },
-    {
-      id: "bottom-alt-2",
-      originalItemId: "bottom-1",
-      category: "bottom",
-      name: "Tailored Pants",
-      brand: "Mango",
-      price: 59,
-      image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop",
-      shopUrl: "https://mango.com",
+      gender: "women",
     },
   ],
-  "shoes-1": [
+  "w-shoes-1": [
     {
-      id: "shoes-alt-1",
-      originalItemId: "shoes-1",
+      id: "w-shoes-alt-1",
+      originalItemId: "w-shoes-1",
       category: "shoes",
       name: "Suede Loafers",
       brand: "H&M",
       price: 35,
       image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=500&fit=crop",
       shopUrl: "https://hm.com",
-    },
-    {
-      id: "shoes-alt-2",
-      originalItemId: "shoes-1",
-      category: "shoes",
-      name: "Ballet Flats",
-      brand: "COS",
-      price: 89,
-      image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=500&fit=crop",
-      shopUrl: "https://cos.com",
+      gender: "women",
     },
   ],
-  "bag-1": [
+  "w-bag-1": [
     {
-      id: "bag-alt-1",
-      originalItemId: "bag-1",
+      id: "w-bag-alt-1",
+      originalItemId: "w-bag-1",
       category: "bag",
       name: "Canvas Tote",
       brand: "Arket",
       price: 45,
       image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=500&fit=crop",
       shopUrl: "https://arket.com",
-    },
-    {
-      id: "bag-alt-2",
-      originalItemId: "bag-1",
-      category: "bag",
-      name: "Vintage Leather Bag",
-      brand: "Vinted",
-      price: 35,
-      image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=500&fit=crop",
-      shopUrl: "https://vinted.com",
+      gender: "women",
     },
   ],
-  "accessory-1": [
+  "w-accessory-1": [
     {
-      id: "acc-alt-1",
-      originalItemId: "accessory-1",
+      id: "w-acc-alt-1",
+      originalItemId: "w-accessory-1",
       category: "accessory",
       name: "Silver Hoops",
       brand: "Zara",
       price: 15,
       image: "https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400&h=500&fit=crop",
       shopUrl: "https://zara.com",
+      gender: "women",
+    },
+  ],
+  // Men's alternatives
+  "m-top-1": [
+    {
+      id: "m-top-alt-1",
+      originalItemId: "m-top-1",
+      category: "top",
+      name: "Linen Shirt",
+      brand: "H&M",
+      price: 35,
+      image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=500&fit=crop",
+      shopUrl: "https://hm.com",
+      gender: "men",
+    },
+    {
+      id: "m-top-alt-2",
+      originalItemId: "m-top-1",
+      category: "top",
+      name: "Knit Polo",
+      brand: "Arket",
+      price: 59,
+      image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=500&fit=crop",
+      shopUrl: "https://arket.com",
+      gender: "men",
+    },
+  ],
+  "m-bottom-1": [
+    {
+      id: "m-bottom-alt-1",
+      originalItemId: "m-bottom-1",
+      category: "bottom",
+      name: "Wide Fit Trousers",
+      brand: "COS",
+      price: 89,
+      image: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop",
+      shopUrl: "https://cos.com",
+      gender: "men",
+    },
+  ],
+  "m-shoes-1": [
+    {
+      id: "m-shoes-alt-1",
+      originalItemId: "m-shoes-1",
+      category: "shoes",
+      name: "Canvas Sneakers",
+      brand: "H&M",
+      price: 29,
+      image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=500&fit=crop",
+      shopUrl: "https://hm.com",
+      gender: "men",
+    },
+  ],
+  "m-bag-1": [
+    {
+      id: "m-bag-alt-1",
+      originalItemId: "m-bag-1",
+      category: "bag",
+      name: "Leather Backpack",
+      brand: "Vinted",
+      price: 45,
+      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=500&fit=crop",
+      shopUrl: "https://vinted.com",
+      gender: "men",
+    },
+  ],
+  "m-accessory-1": [
+    {
+      id: "m-acc-alt-1",
+      originalItemId: "m-accessory-1",
+      category: "accessory",
+      name: "Woven Belt",
+      brand: "Zara",
+      price: 25,
+      image: "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=400&h=500&fit=crop",
+      shopUrl: "https://zara.com",
+      gender: "men",
     },
   ],
 };
