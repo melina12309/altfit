@@ -5,3 +5,12 @@ verify_jwt = true
 
 [functions.style-suggestions]
 verify_jwt = true
+
+[functions.products-search]
+verify_jwt = false
+
+[functions.outfits-generate]
+verify_jwt = false
+
+[functions.product-redirect]
+verify_jwt = false

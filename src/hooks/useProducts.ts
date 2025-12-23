@@ -4,15 +4,22 @@ import type { Gender } from "@/lib/outfitData";
 
 export type Product = {
   id: string;
-  name: string;
+  title: string;
   brand: string;
   price: number;
+  currency: string;
   category: string;
   gender: string;
-  image: string;
-  shop_url: string | null;
-  tags: string[];
-  colors: string[];
+  image_url: string;
+  affiliate_url: string;
+  retailer: string;
+  provider: string;
+  provider_product_id: string;
+  style_tags: string[] | null;
+  colors: string[] | null;
+  last_seen_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ProductFilters = {
@@ -23,7 +30,8 @@ export type ProductFilters = {
   maxPrice?: number;
   brands?: string[];
   colors?: string[];
-  tags?: string[];
+  styleTags?: string[];
+  provider?: string;
 };
 
 export function useProducts() {
@@ -41,7 +49,7 @@ export function useProducts() {
       // Text search
       if (filters.search && filters.search.trim()) {
         query = query.or(
-          `name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,category.ilike.%${filters.search}%`
+          `title.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,category.ilike.%${filters.search}%`
         );
       }
 
@@ -73,14 +81,19 @@ export function useProducts() {
         query = query.overlaps("colors", filters.colors);
       }
 
-      // Tags filter (array contains any)
-      if (filters.tags && filters.tags.length > 0) {
-        query = query.overlaps("tags", filters.tags);
+      // Style tags filter (array contains any)
+      if (filters.styleTags && filters.styleTags.length > 0) {
+        query = query.overlaps("style_tags", filters.styleTags);
       }
 
-      const { data, error: queryError } = await query.order("created_at", {
+      // Provider filter
+      if (filters.provider) {
+        query = query.eq("provider", filters.provider);
+      }
+
+      const { data, error: queryError } = await query.order("last_seen_at", {
         ascending: false,
-      });
+      }).limit(50);
 
       if (queryError) throw queryError;
 
