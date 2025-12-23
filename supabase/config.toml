@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.product-redirect]
 verify_jwt = false
+
+[functions.awin-import]
+verify_jwt = false
