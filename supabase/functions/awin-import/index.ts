@@ -169,12 +169,14 @@ serve(async (req) => {
 
     // Parse request body for optional parameters
     let datafeedUrl = "";
-    let limit = 5000;
+    let limit = 1000;
+    let offset = 0;
     
     try {
       const body = await req.json();
       datafeedUrl = body.datafeedUrl || "";
-      limit = body.limit || 5000;
+      limit = body.limit || 1000;
+      offset = body.offset || 0;
     } catch {
       // No body or invalid JSON
     }
@@ -185,7 +187,7 @@ serve(async (req) => {
     }
 
     console.log("Starting AWIN datafeed import...");
-    console.log(`Limit: ${limit}`);
+    console.log(`Limit: ${limit}, Offset: ${offset}`);
     console.log(`URL: ${datafeedUrl.substring(0, 100)}...`);
 
     // Fetch the gzipped CSV datafeed
@@ -224,12 +226,14 @@ serve(async (req) => {
       headerIndex[h.trim()] = i;
     });
 
-    // Parse products (skip header, limit rows)
-    const maxRows = Math.min(lines.length - 1, limit);
-    console.log(`Processing ${maxRows} products...`);
+    // Parse products (skip header, apply offset and limit)
+    const startRow = 1 + offset; // Skip header + offset
+    const endRow = Math.min(lines.length - 1, offset + limit);
+    const totalAvailable = lines.length - 1;
+    console.log(`Processing products ${offset + 1} to ${endRow} of ${totalAvailable} total...`);
 
     const products: AwinCsvProduct[] = [];
-    for (let i = 1; i <= maxRows; i++) {
+    for (let i = startRow; i <= endRow; i++) {
       try {
         const values = parseCSVLine(lines[i]);
         
@@ -339,13 +343,22 @@ serve(async (req) => {
 
     console.log(`Import complete: ${imported} products imported, ${errors} errors`);
 
+    const totalAvailableProducts = lines.length - 1;
+    const hasMore = offset + limit < totalAvailableProducts;
+    const nextOffset = hasMore ? offset + limit : null;
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Successfully imported ${imported} products`,
+        message: `Successfully imported ${imported} products (${offset + 1}-${Math.min(offset + limit, totalAvailableProducts)} of ${totalAvailableProducts})`,
         imported,
         errors,
         total: products.length,
+        totalAvailable: totalAvailableProducts,
+        offset,
+        limit,
+        hasMore,
+        nextOffset,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
