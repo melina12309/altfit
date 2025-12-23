@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles, Check, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles, MessageSquare, Layers, ChevronDown, ChevronUp } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -9,9 +9,12 @@ import { Footer } from "@/components/Footer";
 import { OutfitItemCard } from "@/components/builder/OutfitItemCard";
 import { AlternativeCard } from "@/components/builder/AlternativeCard";
 import { SaveOutfitDialog } from "@/components/builder/SaveOutfitDialog";
+import { BuilderConversations } from "@/components/builder/BuilderConversations";
+import { BuilderSuggestions } from "@/components/builder/BuilderSuggestions";
+import { SavedOutfitDecks } from "@/components/builder/SavedOutfitDecks";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOutfitBuilder } from "@/hooks/useOutfitBuilder";
+import { useOutfitBuilder, SavedOutfit } from "@/hooks/useOutfitBuilder";
 import { 
   SAMPLE_OUTFITS, 
   ALTERNATIVES, 
@@ -24,6 +27,8 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "women", label: "Women" },
   { value: "men", label: "Men" },
 ];
+
+type SidebarTab = "suggestions" | "conversations" | "decks";
 
 export default function OutfitBuilder() {
   const { toast } = useToast();
@@ -47,6 +52,9 @@ export default function OutfitBuilder() {
   const [budget, setBudget] = useState([300]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [wardrobeLoaded, setWardrobeLoaded] = useState(false);
+  const [currentOutfitName, setCurrentOutfitName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SidebarTab>("decks");
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   // Load shared outfit from URL
   useEffect(() => {
@@ -86,7 +94,8 @@ export default function OutfitBuilder() {
     if (!shareParam) {
       setOutfitItems(SAMPLE_OUTFITS[gender]);
       setSelectedItemId(null);
-      setWardrobeLoaded(false); // Reload wardrobe for new gender
+      setWardrobeLoaded(false);
+      setCurrentOutfitName(null);
     }
   }, [gender, shareParam]);
 
@@ -109,7 +118,6 @@ export default function OutfitBuilder() {
       )
     );
 
-    // Persist to database if user is logged in
     if (user) {
       try {
         if (newLockedState) {
@@ -118,7 +126,6 @@ export default function OutfitBuilder() {
           await removeFromWardrobe(itemId);
         }
       } catch {
-        // Revert on error
         setOutfitItems((prev) =>
           prev.map((i) =>
             i.id === itemId ? { ...i, isLocked: !newLockedState } : i
@@ -150,6 +157,7 @@ export default function OutfitBuilder() {
       )
     );
     setSelectedItemId(null);
+    setCurrentOutfitName(null);
     toast({
       title: "Item replaced",
       description: `Swapped for ${alternative.name} by ${alternative.brand}`,
@@ -160,6 +168,7 @@ export default function OutfitBuilder() {
     setOutfitItems(SAMPLE_OUTFITS[gender]);
     setSelectedItemId(null);
     setWardrobeLoaded(false);
+    setCurrentOutfitName(null);
     toast({
       title: "Outfit reset",
       description: "All items restored to original",
@@ -184,10 +193,13 @@ export default function OutfitBuilder() {
 
     try {
       await saveOutfit(name, gender, outfitItems, totalPrice, budget[0]);
+      setCurrentOutfitName(name);
       toast({
         title: "Outfit saved!",
-        description: "Find it in your Favorites",
+        description: "Find it in your Saved Decks",
       });
+      // Switch to decks tab to show the saved outfit
+      setActiveTab("decks");
     } catch {
       toast({
         title: "Error",
@@ -195,6 +207,18 @@ export default function OutfitBuilder() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleLoadOutfit = (outfit: SavedOutfit) => {
+    setGender(outfit.gender);
+    setOutfitItems(outfit.items);
+    setBudget([outfit.budget || 300]);
+    setCurrentOutfitName(outfit.name);
+    setSelectedItemId(null);
+    toast({
+      title: `Loaded "${outfit.name}"`,
+      description: "Customize it further or save as new",
+    });
   };
 
   const handleShare = async () => {
@@ -207,7 +231,6 @@ export default function OutfitBuilder() {
         description: "Share this link with friends",
       });
     } catch {
-      // Fallback for browsers that don't support clipboard
       toast({
         title: "Share link",
         description: url,
@@ -216,6 +239,12 @@ export default function OutfitBuilder() {
   };
 
   const lockedCount = outfitItems.filter((i) => i.isLocked).length;
+
+  const tabs = [
+    { id: "decks" as SidebarTab, label: "Saved", icon: Layers },
+    { id: "suggestions" as SidebarTab, label: "For You", icon: Sparkles },
+    { id: "conversations" as SidebarTab, label: "Chats", icon: MessageSquare },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -233,7 +262,9 @@ export default function OutfitBuilder() {
                 <ArrowLeft className="w-4 h-4" />
                 Back to Explore
               </Link>
-              <h1 className="text-3xl md:text-4xl font-serif">Outfit Builder</h1>
+              <h1 className="text-3xl md:text-4xl font-serif">
+                {currentOutfitName || "Outfit Builder"}
+              </h1>
               <p className="text-muted-foreground mt-1">
                 Customize your look — click items to swap, lock what you own
               </p>
@@ -273,9 +304,9 @@ export default function OutfitBuilder() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-4 gap-6">
             {/* Main outfit grid */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               {/* Budget slider */}
               <div className="bg-card border border-border rounded-xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -328,6 +359,41 @@ export default function OutfitBuilder() {
                 ))}
               </div>
 
+              {/* Alternatives panel */}
+              <AnimatePresence>
+                {selectedItem && alternatives.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-6 bg-card border border-border rounded-xl p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-medium">
+                          Swap {CATEGORY_LABELS[selectedItem.category]}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Click to replace "{selectedItem.name}"
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedItemId(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                      {alternatives.map((alt) => (
+                        <AlternativeCard
+                          key={alt.id}
+                          item={alt}
+                          onSelect={() => handleSelectAlternative(alt)}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Shop all button */}
               <div className="mt-8 flex justify-center">
                 <Button size="lg" className="gap-2">
@@ -337,56 +403,67 @@ export default function OutfitBuilder() {
               </div>
             </div>
 
-            {/* Replacement panel */}
+            {/* Right sidebar */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 bg-card border border-border rounded-xl p-6">
-                <h3 className="font-medium mb-4">
-                  {selectedItem 
-                    ? `Swap ${CATEGORY_LABELS[selectedItem.category]}` 
-                    : "Alternatives"}
-                </h3>
+              <div className="sticky top-24 bg-card border border-border rounded-xl overflow-hidden">
+                {/* Tabs */}
+                <div className="flex border-b border-border">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setSidebarExpanded(true);
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors ${
+                        activeTab === tab.id
+                          ? "text-primary border-b-2 border-primary bg-primary/5"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <tab.icon className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
 
-                <AnimatePresence mode="wait">
-                  {selectedItem && alternatives.length > 0 ? (
-                    <motion.div
-                      key={selectedItemId}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      <p className="text-sm text-muted-foreground">
-                        Click to replace "{selectedItem.name}"
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {alternatives.map((alt) => (
-                          <AlternativeCard
-                            key={alt.id}
-                            item={alt}
-                            onSelect={() => handleSelectAlternative(alt)}
-                          />
-                        ))}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => setSelectedItemId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </motion.div>
+                {/* Toggle button for mobile */}
+                <button
+                  onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                  className="w-full flex items-center justify-center gap-1 py-2 text-xs text-muted-foreground hover:text-foreground lg:hidden border-b border-border"
+                >
+                  {sidebarExpanded ? (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      Collapse
+                    </>
                   ) : (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      Expand
+                    </>
+                  )}
+                </button>
+
+                {/* Tab content */}
+                <AnimatePresence mode="wait">
+                  {sidebarExpanded && (
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-8"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="p-4 max-h-[60vh] overflow-y-auto"
                     >
-                      <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                        <ShoppingBag className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Select an item from your outfit to see alternatives
-                      </p>
+                      {activeTab === "decks" && (
+                        <SavedOutfitDecks 
+                          onLoadOutfit={handleLoadOutfit}
+                          currentOutfitName={currentOutfitName || undefined}
+                        />
+                      )}
+                      {activeTab === "suggestions" && <BuilderSuggestions />}
+                      {activeTab === "conversations" && (
+                        <BuilderConversations onSelectConversation={() => {}} />
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -404,6 +481,7 @@ export default function OutfitBuilder() {
         onSave={handleSaveOutfit}
         totalPrice={totalPrice}
         itemCount={outfitItems.length}
+        defaultName={currentOutfitName || undefined}
       />
     </div>
   );
