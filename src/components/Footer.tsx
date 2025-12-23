@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <a href="/" className="font-serif text-2xl">MUSE</a>
+            <a href="/" className="font-serif text-2xl">ALT-FIT</a>
             <p className="text-sm text-muted-foreground mt-3">
               Iconic looks, made accessible. AI-powered fashion discovery for every budget.
             </p>
@@ -48,7 +48,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            © 2025 MUSE. All rights reserved.
+            © 2025 ALT-FIT. All rights reserved.
           </p>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
