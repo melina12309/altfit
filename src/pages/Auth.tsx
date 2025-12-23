@@ -68,7 +68,7 @@ export default function Auth() {
           }
         } else {
           toast({
-            title: "Welcome to MUSE!",
+            title: "Welcome to ALT-FIT!",
             description: "Your account has been created successfully.",
           });
           navigate("/");
@@ -106,7 +106,7 @@ export default function Auth() {
         >
           {/* Logo */}
           <Link to="/" className="block mb-12">
-            <h1 className="font-serif text-3xl tracking-tight">MUSE</h1>
+            <h1 className="font-serif text-3xl tracking-tight">ALT-FIT</h1>
           </Link>
 
           {/* Header */}
@@ -116,7 +116,7 @@ export default function Auth() {
             </h2>
             <p className="text-muted-foreground">
               {isSignUp
-                ? "Join MUSE to save looks and create collections"
+                ? "Join ALT-FIT to save looks and create collections"
                 : "Sign in to access your saved looks"}
             </p>
           </div>

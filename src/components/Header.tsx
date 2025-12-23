@@ -27,7 +27,7 @@ export function Header() {
       <div className="container flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
         <Link to="/" className="font-serif text-2xl md:text-3xl tracking-tight">
-          MUSE
+          ALT-FIT
         </Link>
 
         {/* Desktop Navigation */}
