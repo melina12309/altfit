@@ -48,7 +48,6 @@ export function Hero() {
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-background">
       {/* Minimal geometric background */}
       <div className="absolute inset-0 z-0">
-        {/* Grid pattern */}
         <div 
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -56,11 +55,7 @@ export function Hero() {
             backgroundSize: '80px 80px'
           }}
         />
-        
-        {/* Gradient accent */}
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-light-gray/50 to-transparent" />
-        
-        {/* Animated line */}
         <motion.div 
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -70,67 +65,37 @@ export function Hero() {
       </div>
 
       <div className="container relative z-10">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* Text content */}
-          <div className="order-2 lg:order-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-foreground/10 mb-8"
-            >
-              <span className="w-2 h-2 bg-foreground rounded-full" />
-              <span className="text-xs editorial-spacing text-foreground/60 font-medium">AI-POWERED STYLING</span>
-            </motion.div>
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-foreground/10 mb-8"
+        >
+          <span className="w-2 h-2 bg-foreground rounded-full" />
+          <span className="text-xs editorial-spacing text-foreground/60 font-medium">AI-POWERED STYLING</span>
+        </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-5xl md:text-6xl lg:text-7xl font-serif leading-[0.95] mb-8 tracking-tight"
-            >
-              <span className="block">Iconic</span>
-              <span className="block">looks,</span>
-              <span className="block italic font-light">your budget</span>
-            </motion.h1>
+        {/* Headline with style deck inline */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-16 mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-serif leading-[0.95] tracking-tight flex-shrink-0"
+          >
+            <span className="block">Iconic</span>
+            <span className="block">looks,</span>
+            <span className="block italic font-light">your budget</span>
+          </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg text-muted-foreground mb-10 max-w-md leading-relaxed"
-            >
-              Discover celebrity and TV-inspired outfits, recreated at every price point. From runway to real life.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Button asChild size="lg" className="group bg-foreground text-background hover:bg-foreground/90 rounded-none px-8 h-14">
-                <Link to="/stylist">
-                  <Sparkles className="w-4 h-4 mr-3" />
-                  Talk to AI Stylist
-                  <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" className="rounded-none border-foreground/20 hover:bg-foreground hover:text-background px-8 h-14">
-                <Play className="w-4 h-4 mr-3" />
-                Explore Looks
-              </Button>
-            </motion.div>
-          </div>
-
-          {/* Animated card carousel - next to the headline */}
+          {/* Style deck cards - inline with headline */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="order-1 lg:order-2 relative h-[420px] md:h-[500px]"
+            className="relative h-[320px] md:h-[380px] w-full lg:w-[400px] flex-shrink-0"
           >
-            {/* Card stack */}
             <div className="relative w-full h-full flex items-center justify-center">
               {trendingLooks.map((look, index) => {
                 const offset = (index - activeIndex + trendingLooks.length) % trendingLooks.length;
@@ -143,19 +108,18 @@ export function Hero() {
                     key={look.id}
                     animate={{
                       scale: isActive ? 1 : isNext ? 0.88 : isPrev ? 0.82 : 0.75,
-                      x: isActive ? 0 : isNext ? 50 : isPrev ? -50 : 0,
-                      y: isActive ? 0 : isNext ? 15 : isPrev ? 25 : 35,
+                      x: isActive ? 0 : isNext ? 40 : isPrev ? -40 : 0,
+                      y: isActive ? 0 : isNext ? 12 : isPrev ? 20 : 30,
                       rotateY: isActive ? 0 : isNext ? -5 : isPrev ? 5 : 0,
                       zIndex: isActive ? 30 : isNext ? 20 : isPrev ? 10 : 0,
                       opacity: isActive ? 1 : isNext ? 0.6 : isPrev ? 0.35 : 0,
                     }}
                     transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-                    className="absolute w-64 md:w-72 cursor-pointer"
+                    className="absolute w-48 md:w-56 cursor-pointer"
                     onClick={() => setActiveIndex(index)}
                   >
                     <div className="relative bg-card overflow-hidden shadow-elevated border border-border">
-                      {/* Image */}
-                      <div className="relative h-80 md:h-96 overflow-hidden">
+                      <div className="relative h-60 md:h-72 overflow-hidden">
                         <img
                           src={look.image}
                           alt={look.title}
@@ -163,14 +127,12 @@ export function Hero() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-pure-black/80 via-pure-black/20 to-transparent" />
                       </div>
-
-                      {/* Content overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                        <p className="text-xs text-white/50 mb-1.5 uppercase editorial-spacing">{look.source}</p>
-                        <h3 className="font-serif text-xl mb-3">{look.title}</h3>
-                        <div className="flex items-center justify-between border-t border-white/20 pt-3">
-                          <span className="text-sm font-medium">{look.price}</span>
-                          <span className="text-xs text-white/50">{look.items} items</span>
+                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                        <p className="text-[10px] text-white/50 mb-1 uppercase editorial-spacing">{look.source}</p>
+                        <h3 className="font-serif text-lg mb-2">{look.title}</h3>
+                        <div className="flex items-center justify-between border-t border-white/20 pt-2">
+                          <span className="text-xs font-medium">{look.price}</span>
+                          <span className="text-[10px] text-white/50">{look.items} items</span>
                         </div>
                       </div>
                     </div>
@@ -180,13 +142,13 @@ export function Hero() {
             </div>
 
             {/* Progress indicator */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-3">
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
               {trendingLooks.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setActiveIndex(index)}
                   className={`h-0.5 transition-all duration-300 ${
-                    index === activeIndex ? "w-10 bg-foreground" : "w-5 bg-foreground/20 hover:bg-foreground/40"
+                    index === activeIndex ? "w-8 bg-foreground" : "w-4 bg-foreground/20 hover:bg-foreground/40"
                   }`}
                 />
               ))}
@@ -194,12 +156,41 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Stats row below */}
+        {/* Description and CTA */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-lg text-muted-foreground mb-10 max-w-md leading-relaxed"
+        >
+          Discover celebrity and TV-inspired outfits, recreated at every price point. From runway to real life.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-col sm:flex-row gap-4"
+        >
+          <Button asChild size="lg" className="group bg-foreground text-background hover:bg-foreground/90 rounded-none px-8 h-14">
+            <Link to="/stylist">
+              <Sparkles className="w-4 h-4 mr-3" />
+              Talk to AI Stylist
+              <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="lg" className="rounded-none border-foreground/20 hover:bg-foreground hover:text-background px-8 h-14">
+            <Play className="w-4 h-4 mr-3" />
+            Explore Looks
+          </Button>
+        </motion.div>
+
+        {/* Stats row */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="flex gap-16 mt-12 pt-8 border-t border-foreground/10"
+          className="flex gap-16 mt-16 pt-8 border-t border-foreground/10"
         >
           <div>
             <p className="text-4xl md:text-5xl font-serif tracking-tight">50K+</p>
