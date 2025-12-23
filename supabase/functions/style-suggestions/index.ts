@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     // Fetch user's data for context
-    const [conversationsRes, outfitsRes, wardrobeRes] = await Promise.all([
+    const [conversationsRes, outfitsRes, wardrobeRes, feedbackRes] = await Promise.all([
       supabase
         .from("chat_conversations")
         .select("title, preview")
@@ -54,14 +54,27 @@ serve(async (req) => {
         .select("item_data")
         .eq("user_id", user.id)
         .limit(20),
+      supabase
+        .from("suggestion_feedback")
+        .select("suggestion_title, suggestion_category, feedback_type")
+        .eq("user_id", user.id),
     ]);
 
     const conversations = conversationsRes.data || [];
     const savedOutfits = outfitsRes.data || [];
     const wardrobe = wardrobeRes.data || [];
+    const feedback = feedbackRes.data || [];
 
-    // If no data, return empty suggestions
-    if (conversations.length === 0 && savedOutfits.length === 0 && wardrobe.length === 0) {
+    // Separate saved and dismissed suggestions
+    const savedStyles = feedback
+      .filter(f => f.feedback_type === "saved")
+      .map(f => `${f.suggestion_title} (${f.suggestion_category})`);
+    const dismissedStyles = feedback
+      .filter(f => f.feedback_type === "dismissed")
+      .map(f => f.suggestion_title);
+
+    // If no data at all, return empty suggestions
+    if (conversations.length === 0 && savedOutfits.length === 0 && wardrobe.length === 0 && savedStyles.length === 0) {
       return new Response(JSON.stringify({ suggestions: [], hasData: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,8 +104,10 @@ serve(async (req) => {
 User's recent chat topics: ${conversationSummary || "None"}
 User's saved outfits: ${outfitSummary || "None"}
 User's wardrobe items: ${wardrobeSummary || "None"}
+${savedStyles.length > 0 ? `\nStyles they LIKED (generate SIMILAR ones): ${savedStyles.join(", ")}` : ""}
+${dismissedStyles.length > 0 ? `\nStyles they DISMISSED (AVOID these or similar): ${dismissedStyles.join(", ")}` : ""}
 
-Generate exactly 4 suggestions that match their style preferences. Each suggestion should be a cultural moment, trend, or style category they might like.`;
+Generate exactly 4 NEW suggestions that match their preferences. Focus on styles similar to what they liked and avoid anything similar to what they dismissed.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

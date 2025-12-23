@@ -234,6 +234,33 @@ export type Database = {
         }
         Relationships: []
       }
+      suggestion_feedback: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: string
+          suggestion_category: string
+          suggestion_title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: string
+          suggestion_category: string
+          suggestion_title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          suggestion_category?: string
+          suggestion_title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_wardrobe: {
         Row: {
           created_at: string
