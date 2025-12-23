@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_rate_limits: {
+        Row: {
+          endpoint: string
+          id: string
+          requested_at: string
+          user_id: string
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          requested_at?: string
+          user_id: string
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          requested_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       collection_items: {
         Row: {
           collection_id: string
@@ -120,7 +141,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_max_requests?: number
+          p_user_id: string
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
