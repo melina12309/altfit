@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, Heart, User, LogOut } from "lucide-react";
+import { Menu, X, Search, Heart, User, LogOut, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,10 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
+          <Link to="/stylist" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            AI STYLIST
+          </Link>
           <a href="/#discover" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             DISCOVER
           </a>
@@ -41,9 +45,6 @@ export function Header() {
           <a href="/#collections" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
             COLLECTIONS
           </a>
-          <Link to="/outfit/1" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
-            OUTFIT DETAIL
-          </Link>
         </nav>
 
         {/* Desktop Actions */}
@@ -120,6 +121,14 @@ export function Header() {
             className="md:hidden bg-background border-b border-border"
           >
             <nav className="container py-6 flex flex-col gap-4">
+              <Link
+                to="/stylist"
+                className="text-sm editorial-spacing py-2 flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Sparkles className="w-4 h-4" />
+                AI STYLIST
+              </Link>
               <a
                 href="/#discover"
                 className="text-sm editorial-spacing py-2"
@@ -141,13 +150,6 @@ export function Header() {
               >
                 COLLECTIONS
               </a>
-              <Link
-                to="/outfit/1"
-                className="text-sm editorial-spacing py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                OUTFIT DETAIL
-              </Link>
               <div className="flex items-center gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" size="icon">
                   <Search className="w-5 h-5" />
