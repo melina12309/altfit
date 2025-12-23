@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,18 +10,31 @@ import { OutfitItemCard } from "@/components/builder/OutfitItemCard";
 import { AlternativeCard } from "@/components/builder/AlternativeCard";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  SAMPLE_OUTFIT, 
+  SAMPLE_OUTFITS, 
   ALTERNATIVES, 
   type OutfitItemData,
+  type Gender,
   CATEGORY_LABELS 
 } from "@/lib/outfitData";
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: "women", label: "Women" },
+  { value: "men", label: "Men" },
+];
 
 export default function OutfitBuilder() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [outfitItems, setOutfitItems] = useState<OutfitItemData[]>(SAMPLE_OUTFIT);
+  const [gender, setGender] = useState<Gender>("women");
+  const [outfitItems, setOutfitItems] = useState<OutfitItemData[]>(SAMPLE_OUTFITS.women);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [budget, setBudget] = useState([300]);
+
+  // Update outfit when gender changes
+  useEffect(() => {
+    setOutfitItems(SAMPLE_OUTFITS[gender]);
+    setSelectedItemId(null);
+  }, [gender]);
 
   const totalPrice = useMemo(() => {
     return outfitItems.reduce((sum, item) => sum + item.price, 0);
@@ -61,7 +74,7 @@ export default function OutfitBuilder() {
   };
 
   const handleReset = () => {
-    setOutfitItems(SAMPLE_OUTFIT);
+    setOutfitItems(SAMPLE_OUTFITS[gender]);
     setSelectedItemId(null);
     toast({
       title: "Outfit reset",
@@ -96,6 +109,23 @@ export default function OutfitBuilder() {
               <p className="text-muted-foreground mt-1">
                 Customize your look — click items to swap, lock what you own
               </p>
+              
+              {/* Gender filter tabs */}
+              <div className="flex gap-2 mt-4">
+                {GENDER_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setGender(option.value)}
+                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                      gender === option.value
+                        ? "bg-foreground text-background"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
