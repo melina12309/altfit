@@ -1,10 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schemas
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().max(10000, "Message content too long (max 10,000 characters)"),
+  image: z.string().max(10485760, "Image too large (max ~10MB)").optional()
+}).refine(
+  (msg) => {
+    // If image exists, validate it's a valid data URL
+    if (msg.image) {
+      return msg.image.startsWith("data:image/");
+    }
+    return true;
+  },
+  { message: "Invalid image format. Must be a data URL starting with 'data:image/'" }
+);
+
+const RequestSchema = z.object({
+  messages: z.array(MessageSchema)
+    .min(1, "At least one message is required")
+    .max(50, "Too many messages (max 50)")
+});
 
 const SYSTEM_PROMPT = `You are a confident, warm, and opinionated personal style assistant — like a fashion editor and personal stylist rolled into one. You help users recreate iconic looks from TV shows, celebrities, cultural moments, and events in affordable ways.
 
@@ -84,7 +107,32 @@ serve(async (req) => {
 
     console.log("Authenticated user:", user.id);
 
-    const { messages } = await req.json();
+    // Parse and validate request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      console.error("Invalid JSON in request body");
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate request structure using zod
+    const validationResult = RequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; ");
+      console.error("Validation failed:", errorMessage);
+      return new Response(JSON.stringify({ error: `Invalid request: ${errorMessage}` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { messages } = validationResult.data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -92,7 +140,7 @@ serve(async (req) => {
     }
 
     // Transform messages to handle image content
-    const formattedMessages = messages.map((msg: any) => {
+    const formattedMessages = messages.map((msg) => {
       // If message has image content, format for multimodal
       if (msg.image) {
         return {
