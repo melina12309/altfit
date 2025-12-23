@@ -9,6 +9,42 @@ export type Message = {
 };
 
 export type OutfitItem = {
+  category: "top" | "bottom" | "shoes" | "bag" | "accessory";
+  product_id: string;
+  name: string;
+  brand: string;
+  price: number;
+  affiliate_url: string;
+  image_url: string;
+  style_tags: string[];
+};
+
+export type BudgetTier = {
+  label: string;
+  total_price: number;
+  products: string[];
+  note: string;
+};
+
+export type OutfitData = {
+  look_title: string;
+  inspiration: string;
+  why_this_works: string;
+  budget_range: {
+    min: number;
+    max: number;
+  };
+  outfit: OutfitItem[];
+  budget_tiers: BudgetTier[];
+  actions: {
+    save: boolean;
+    remix: boolean;
+    shop: boolean;
+  };
+};
+
+// Legacy type support for backward compatibility
+export type LegacyOutfitItem = {
   category: string;
   name: string;
   brand: string;
@@ -16,11 +52,11 @@ export type OutfitItem = {
   note: string;
 };
 
-export type OutfitData = {
+export type LegacyOutfitData = {
   title: string;
   inspiration: string;
   whyItWorks: string;
-  items: OutfitItem[];
+  items: LegacyOutfitItem[];
   budgetTiers: {
     budget: { total: string; note: string };
     mid: { total: string; note: string };
@@ -33,10 +69,80 @@ export function parseOutfitFromMessage(content: string): OutfitData | null {
   if (!outfitMatch) return null;
   
   try {
-    return JSON.parse(outfitMatch[1].trim());
+    const parsed = JSON.parse(outfitMatch[1].trim());
+    
+    // Check if it's the new format
+    if (parsed.look_title && parsed.outfit) {
+      return parsed as OutfitData;
+    }
+    
+    // Convert legacy format to new format
+    if (parsed.title && parsed.items) {
+      const legacy = parsed as LegacyOutfitData;
+      return convertLegacyToNewFormat(legacy);
+    }
+    
+    return null;
   } catch {
     return null;
   }
+}
+
+function convertLegacyToNewFormat(legacy: LegacyOutfitData): OutfitData {
+  const parsePrice = (priceRange: string): number => {
+    const match = priceRange.match(/€(\d+)/);
+    return match ? parseInt(match[1], 10) : 50;
+  };
+
+  const parseTotalPrice = (total: string): number => {
+    const match = total.match(/€(\d+)/);
+    return match ? parseInt(match[1], 10) : 100;
+  };
+
+  return {
+    look_title: legacy.title,
+    inspiration: legacy.inspiration,
+    why_this_works: legacy.whyItWorks,
+    budget_range: {
+      min: parseTotalPrice(legacy.budgetTiers.budget.total),
+      max: parseTotalPrice(legacy.budgetTiers.premium.total)
+    },
+    outfit: legacy.items.map((item, idx) => ({
+      category: item.category.toLowerCase() as OutfitItem["category"],
+      product_id: `legacy-${idx}`,
+      name: item.name,
+      brand: item.brand,
+      price: parsePrice(item.priceRange),
+      affiliate_url: "",
+      image_url: "",
+      style_tags: []
+    })),
+    budget_tiers: [
+      {
+        label: `Under ${legacy.budgetTiers.budget.total}`,
+        total_price: parseTotalPrice(legacy.budgetTiers.budget.total),
+        products: legacy.items.slice(0, 3).map(i => i.category.toLowerCase()),
+        note: legacy.budgetTiers.budget.note
+      },
+      {
+        label: `Under ${legacy.budgetTiers.mid.total}`,
+        total_price: parseTotalPrice(legacy.budgetTiers.mid.total),
+        products: legacy.items.slice(0, 4).map(i => i.category.toLowerCase()),
+        note: legacy.budgetTiers.mid.note
+      },
+      {
+        label: `Under ${legacy.budgetTiers.premium.total}`,
+        total_price: parseTotalPrice(legacy.budgetTiers.premium.total),
+        products: legacy.items.map(i => i.category.toLowerCase()),
+        note: legacy.budgetTiers.premium.note
+      }
+    ],
+    actions: {
+      save: true,
+      remix: true,
+      shop: true
+    }
+  };
 }
 
 export function getTextWithoutOutfit(content: string): string {
