@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ForYouSection } from "@/components/ForYouSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFavorites, removeFavorite } from "@/lib/favorites";
 import { useChatHistory, type Conversation } from "@/hooks/useChatHistory";
@@ -204,6 +205,11 @@ export default function Favorites() {
               Your saved looks, custom outfits, and past styling conversations.
             </p>
           </motion.div>
+        </section>
+
+        {/* For You Section */}
+        <section className="container pb-8">
+          <ForYouSection title="Suggested for you" />
         </section>
 
         {/* Tabs */}
