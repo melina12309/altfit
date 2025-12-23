@@ -1,14 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles, Check, Link as LinkIcon } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { OutfitItemCard } from "@/components/builder/OutfitItemCard";
 import { AlternativeCard } from "@/components/builder/AlternativeCard";
+import { SaveOutfitDialog } from "@/components/builder/SaveOutfitDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOutfitBuilder } from "@/hooks/useOutfitBuilder";
 import { 
   SAMPLE_OUTFITS, 
   ALTERNATIVES, 
@@ -25,16 +28,67 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
 export default function OutfitBuilder() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const shareParam = searchParams.get("share");
+
+  const {
+    loadWardrobe,
+    addToWardrobe,
+    removeFromWardrobe,
+    saveOutfit,
+    generateShareUrl,
+    parseShareUrl,
+  } = useOutfitBuilder();
+
   const [gender, setGender] = useState<Gender>("women");
   const [outfitItems, setOutfitItems] = useState<OutfitItemData[]>(SAMPLE_OUTFITS.women);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [budget, setBudget] = useState([300]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [wardrobeLoaded, setWardrobeLoaded] = useState(false);
+
+  // Load shared outfit from URL
+  useEffect(() => {
+    if (shareParam) {
+      const shared = parseShareUrl(shareParam);
+      if (shared) {
+        setGender(shared.gender);
+        setOutfitItems(shared.items);
+        setBudget([shared.budget]);
+        toast({
+          title: "Shared outfit loaded",
+          description: "You're viewing a shared outfit. Make it yours by customizing it!",
+        });
+      }
+    }
+  }, [shareParam, parseShareUrl, toast]);
+
+  // Load user's wardrobe (locked items) on mount
+  useEffect(() => {
+    if (user && !wardrobeLoaded && !shareParam) {
+      loadWardrobe().then((lockedItemIds) => {
+        if (lockedItemIds.length > 0) {
+          setOutfitItems((prev) =>
+            prev.map((item) => ({
+              ...item,
+              isLocked: lockedItemIds.includes(item.id),
+            }))
+          );
+        }
+        setWardrobeLoaded(true);
+      });
+    }
+  }, [user, wardrobeLoaded, loadWardrobe, shareParam]);
 
   // Update outfit when gender changes
   useEffect(() => {
-    setOutfitItems(SAMPLE_OUTFITS[gender]);
-    setSelectedItemId(null);
-  }, [gender]);
+    if (!shareParam) {
+      setOutfitItems(SAMPLE_OUTFITS[gender]);
+      setSelectedItemId(null);
+      setWardrobeLoaded(false); // Reload wardrobe for new gender
+    }
+  }, [gender, shareParam]);
 
   const totalPrice = useMemo(() => {
     return outfitItems.reduce((sum, item) => sum + item.price, 0);
@@ -43,18 +97,47 @@ export default function OutfitBuilder() {
   const selectedItem = outfitItems.find((item) => item.id === selectedItemId);
   const alternatives = selectedItemId ? ALTERNATIVES[selectedItemId] || [] : [];
 
-  const handleToggleLock = (itemId: string) => {
+  const handleToggleLock = async (itemId: string) => {
+    const item = outfitItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const newLockedState = !item.isLocked;
+
     setOutfitItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId ? { ...item, isLocked: !item.isLocked } : item
+      prev.map((i) =>
+        i.id === itemId ? { ...i, isLocked: newLockedState } : i
       )
     );
-    const item = outfitItems.find((i) => i.id === itemId);
+
+    // Persist to database if user is logged in
+    if (user) {
+      try {
+        if (newLockedState) {
+          await addToWardrobe(itemId, item);
+        } else {
+          await removeFromWardrobe(itemId);
+        }
+      } catch {
+        // Revert on error
+        setOutfitItems((prev) =>
+          prev.map((i) =>
+            i.id === itemId ? { ...i, isLocked: !newLockedState } : i
+          )
+        );
+        toast({
+          title: "Error",
+          description: "Failed to update wardrobe",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     toast({
-      title: item?.isLocked ? "Item unlocked" : "Item locked",
-      description: item?.isLocked 
-        ? "This item can now be replaced" 
-        : "This item is marked as owned",
+      title: newLockedState ? "Item locked" : "Item unlocked",
+      description: newLockedState 
+        ? "This item is marked as owned" 
+        : "This item can now be replaced",
     });
   };
 
@@ -76,6 +159,7 @@ export default function OutfitBuilder() {
   const handleReset = () => {
     setOutfitItems(SAMPLE_OUTFITS[gender]);
     setSelectedItemId(null);
+    setWardrobeLoaded(false);
     toast({
       title: "Outfit reset",
       description: "All items restored to original",
@@ -85,6 +169,50 @@ export default function OutfitBuilder() {
   const handleAskStylist = () => {
     const itemsList = outfitItems.map((i) => `${i.name} by ${i.brand}`).join(", ");
     navigate(`/stylist?q=${encodeURIComponent(`I have this outfit: ${itemsList}. Can you suggest improvements within €${budget[0]}?`)}`);
+  };
+
+  const handleSaveOutfit = async (name: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save outfits",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      await saveOutfit(name, gender, outfitItems, totalPrice, budget[0]);
+      toast({
+        title: "Outfit saved!",
+        description: "Find it in your Favorites",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to save outfit",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    const url = generateShareUrl(gender, outfitItems, budget[0]);
+    
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with friends",
+      });
+    } catch {
+      // Fallback for browsers that don't support clipboard
+      toast({
+        title: "Share link",
+        description: url,
+      });
+    }
   };
 
   const lockedCount = outfitItems.filter((i) => i.isLocked).length;
@@ -132,10 +260,10 @@ export default function OutfitBuilder() {
               <Button variant="outline" size="icon" onClick={handleReset}>
                 <RotateCcw className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={() => setSaveDialogOpen(true)}>
                 <Heart className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={handleShare}>
                 <Share2 className="w-4 h-4" />
               </Button>
               <Button onClick={handleAskStylist} className="gap-2">
@@ -160,7 +288,7 @@ export default function OutfitBuilder() {
                   <div className="text-right">
                     <p className="text-2xl font-serif">€{budget[0]}</p>
                     {lockedCount > 0 && (
-                      <p className="text-xs text-muted-foreground">{lockedCount} item{lockedCount > 1 ? "s" : ""} locked</p>
+                      <p className="text-xs text-muted-foreground">{lockedCount} item{lockedCount > 1 ? "s" : ""} owned</p>
                     )}
                   </div>
                 </div>
@@ -188,7 +316,7 @@ export default function OutfitBuilder() {
                     onSelect={() => {
                       if (item.isLocked) {
                         toast({
-                          title: "Item locked",
+                          title: "Item owned",
                           description: "Unlock this item to swap it",
                         });
                         return;
@@ -269,6 +397,14 @@ export default function OutfitBuilder() {
       </main>
 
       <Footer />
+
+      <SaveOutfitDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        onSave={handleSaveOutfit}
+        totalPrice={totalPrice}
+        itemCount={outfitItems.length}
+      />
     </div>
   );
 }
