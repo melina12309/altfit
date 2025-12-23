@@ -3,13 +3,14 @@ import { Sparkles, User } from "lucide-react";
 import { OutfitCard } from "./OutfitCard";
 import { parseOutfitFromMessage, getTextWithoutOutfit } from "@/lib/styleChat";
 
-interface ChatMessageProps {
+export interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
+  image?: string;
   isStreaming?: boolean;
 }
 
-export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
+export function ChatMessage({ role, content, image, isStreaming }: ChatMessageProps) {
   const isUser = role === "user";
   const outfit = !isUser ? parseOutfitFromMessage(content) : null;
   const textContent = !isUser ? getTextWithoutOutfit(content) : content;
@@ -34,7 +35,18 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
       </div>
 
       {/* Content */}
-      <div className={`flex-1 space-y-4 ${isUser ? "text-right" : ""}`}>
+      <div className={`flex-1 space-y-3 ${isUser ? "text-right" : ""}`}>
+        {/* User uploaded image */}
+        {isUser && image && (
+          <div className="inline-block ml-auto">
+            <img
+              src={image}
+              alt="Uploaded outfit"
+              className="max-w-[200px] max-h-[250px] object-cover rounded-xl border border-border"
+            />
+          </div>
+        )}
+
         {/* Text Message */}
         {textContent && (
           <div
@@ -61,7 +73,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
         )}
         
         {/* Show loading state while streaming outfit */}
-        {!textContent && isStreaming && (
+        {!textContent && !image && isStreaming && (
           <div className="inline-block bg-secondary text-secondary-foreground rounded-2xl rounded-bl-sm px-4 py-3">
             <p className="text-sm">
               Creating your look

@@ -13,6 +13,11 @@ Your personality:
 - Prioritize affordability and realism — suggest accessible brands
 - Never mention being an AI or having limitations
 
+When users share images, analyze the outfit in detail:
+- Identify each piece (top, bottom, shoes, accessories)
+- Note the overall style, color palette, and silhouette
+- Suggest affordable alternatives to recreate the look
+
 When responding to outfit requests, ALWAYS structure your response using this JSON format wrapped in <outfit> tags:
 
 <outfit>
@@ -56,6 +61,31 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Transform messages to handle image content
+    const formattedMessages = messages.map((msg: any) => {
+      // If message has image content, format for multimodal
+      if (msg.image) {
+        return {
+          role: msg.role,
+          content: [
+            {
+              type: "text",
+              text: msg.content || "Please analyze this outfit and suggest affordable alternatives."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: msg.image
+              }
+            }
+          ]
+        };
+      }
+      return msg;
+    });
+
+    console.log("Processing chat with", formattedMessages.length, "messages");
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -66,7 +96,7 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          ...messages,
+          ...formattedMessages,
         ],
         stream: true,
       }),

@@ -1,6 +1,11 @@
+export type MessageContent = 
+  | string 
+  | { text: string; image?: string };
+
 export type Message = {
   role: "user" | "assistant";
   content: string;
+  image?: string; // Base64 image data URL
 };
 
 export type OutfitItem = {
@@ -131,4 +136,14 @@ export async function streamChat({
   } catch (error) {
     onError(error instanceof Error ? error.message : "Connection failed");
   }
+}
+
+// Helper to convert File to base64 data URL
+export async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
