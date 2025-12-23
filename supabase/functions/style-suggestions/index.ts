@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     // Fetch user's data for context
-    const [conversationsRes, outfitsRes, wardrobeRes, feedbackRes] = await Promise.all([
+    const [conversationsRes, outfitsRes, wardrobeRes, feedbackRes, preferencesRes] = await Promise.all([
       supabase
         .from("chat_conversations")
         .select("title, preview")
@@ -58,12 +58,18 @@ serve(async (req) => {
         .from("suggestion_feedback")
         .select("suggestion_title, suggestion_category, feedback_type")
         .eq("user_id", user.id),
+      supabase
+        .from("user_style_preferences")
+        .select("styles, occasions, colors, onboarding_completed")
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
 
     const conversations = conversationsRes.data || [];
     const savedOutfits = outfitsRes.data || [];
     const wardrobe = wardrobeRes.data || [];
     const feedback = feedbackRes.data || [];
+    const preferences = preferencesRes.data;
 
     // Separate saved and dismissed suggestions
     const savedStyles = feedback
@@ -73,8 +79,12 @@ serve(async (req) => {
       .filter(f => f.feedback_type === "dismissed")
       .map(f => f.suggestion_title);
 
-    // If no data at all, return empty suggestions
-    if (conversations.length === 0 && savedOutfits.length === 0 && wardrobe.length === 0 && savedStyles.length === 0) {
+    // Check if user has style preferences from onboarding
+    const hasPreferences = preferences?.onboarding_completed && 
+      (preferences.styles?.length > 0 || preferences.occasions?.length > 0 || preferences.colors?.length > 0);
+
+    // If no data at all (including preferences), return empty suggestions
+    if (conversations.length === 0 && savedOutfits.length === 0 && wardrobe.length === 0 && savedStyles.length === 0 && !hasPreferences) {
       return new Response(JSON.stringify({ suggestions: [], hasData: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -99,15 +109,21 @@ serve(async (req) => {
       })
       .join(", ");
 
-    const prompt = `Based on this user's fashion preferences and history, generate 4 personalized style suggestions.
+    // Build preferences summary from onboarding
+    const preferencesSummary = hasPreferences ? `
+User's preferred styles: ${preferences.styles?.join(", ") || "None specified"}
+User's preferred occasions: ${preferences.occasions?.join(", ") || "None specified"}  
+User's preferred colors: ${preferences.colors?.join(", ") || "None specified"}` : "";
 
+    const prompt = `Based on this user's fashion preferences and history, generate 4 personalized style suggestions.
+${preferencesSummary}
 User's recent chat topics: ${conversationSummary || "None"}
 User's saved outfits: ${outfitSummary || "None"}
 User's wardrobe items: ${wardrobeSummary || "None"}
 ${savedStyles.length > 0 ? `\nStyles they LIKED (generate SIMILAR ones): ${savedStyles.join(", ")}` : ""}
 ${dismissedStyles.length > 0 ? `\nStyles they DISMISSED (AVOID these or similar): ${dismissedStyles.join(", ")}` : ""}
 
-Generate exactly 4 NEW suggestions that match their preferences. Focus on styles similar to what they liked and avoid anything similar to what they dismissed.`;
+Generate exactly 4 NEW suggestions that match their preferences. Focus on styles similar to what they liked and avoid anything similar to what they dismissed. Prioritize their stated style preferences from onboarding.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

@@ -261,6 +261,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_style_preferences: {
+        Row: {
+          colors: string[]
+          created_at: string
+          id: string
+          occasions: string[]
+          onboarding_completed: boolean
+          styles: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          colors?: string[]
+          created_at?: string
+          id?: string
+          occasions?: string[]
+          onboarding_completed?: boolean
+          styles?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          colors?: string[]
+          created_at?: string
+          id?: string
+          occasions?: string[]
+          onboarding_completed?: boolean
+          styles?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_wardrobe: {
         Row: {
           created_at: string
