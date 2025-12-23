@@ -54,7 +54,7 @@ export function Hero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 pb-12 overflow-hidden bg-background">
+    <section className="relative min-h-screen flex items-center justify-center pt-24 pb-12 overflow-hidden bg-background">
       {/* Subtle background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-foreground/[0.02] rounded-full blur-3xl" />
