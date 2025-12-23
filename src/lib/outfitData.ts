@@ -1,15 +1,18 @@
 export type Gender = "women" | "men";
 
+// Category type supports both legacy and new DB categories
+export type ItemCategory = "top" | "bottom" | "shoes" | "bag" | "accessory" | "tops" | "bottoms" | "outerwear" | "accessories";
+
 export interface OutfitItemData {
   id: string;
-  category: "top" | "bottom" | "shoes" | "bag" | "accessory";
+  category: ItemCategory;
   name: string;
   brand: string;
   price: number;
   image: string;
   shopUrl?: string;
   isLocked?: boolean;
-  gender: Gender;
+  gender?: Gender | "unisex";
 }
 
 export interface OutfitAlternative extends OutfitItemData {
@@ -289,4 +292,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   shoes: "Shoes",
   bag: "Bag",
   accessory: "Accessory",
+  // DB categories
+  tops: "Top",
+  bottoms: "Bottom",
+  outerwear: "Outerwear",
+  accessories: "Accessory",
 };
