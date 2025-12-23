@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2, Home, Settings } from "lucide-react";
+import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2, Home, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,6 +90,12 @@ export function Header() {
                   <Link to="/settings" className="cursor-pointer">
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin" className="cursor-pointer">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
