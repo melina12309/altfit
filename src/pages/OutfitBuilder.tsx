@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles, MessageSquare, Layers, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Heart, Share2, RotateCcw, Sparkles, MessageSquare, Layers, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -12,6 +12,7 @@ import { SaveOutfitDialog } from "@/components/builder/SaveOutfitDialog";
 import { BuilderConversations } from "@/components/builder/BuilderConversations";
 import { BuilderSuggestions } from "@/components/builder/BuilderSuggestions";
 import { SavedOutfitDecks } from "@/components/builder/SavedOutfitDecks";
+import { ProductSearch } from "@/components/builder/ProductSearch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOutfitBuilder, SavedOutfit } from "@/hooks/useOutfitBuilder";
@@ -28,7 +29,7 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "men", label: "Men" },
 ];
 
-type SidebarTab = "suggestions" | "conversations" | "decks";
+type SidebarTab = "suggestions" | "conversations" | "decks" | "search";
 
 export default function OutfitBuilder() {
   const { toast } = useToast();
@@ -53,7 +54,7 @@ export default function OutfitBuilder() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [wardrobeLoaded, setWardrobeLoaded] = useState(false);
   const [currentOutfitName, setCurrentOutfitName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<SidebarTab>("decks");
+  const [activeTab, setActiveTab] = useState<SidebarTab>("search");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   // Load shared outfit from URL
@@ -239,8 +240,34 @@ export default function OutfitBuilder() {
   };
 
   const lockedCount = outfitItems.filter((i) => i.isLocked).length;
+  const currentOutfitIds = useMemo(() => outfitItems.map((i) => i.id), [outfitItems]);
+
+  const handleAddProductToOutfit = useCallback((item: OutfitItemData) => {
+    // Check if we already have an item in this category
+    const existingCategoryItem = outfitItems.find((i) => i.category === item.category);
+    
+    if (existingCategoryItem) {
+      // Replace the existing item in that category
+      setOutfitItems((prev) =>
+        prev.map((i) => (i.category === item.category ? { ...item, isLocked: false } : i))
+      );
+      toast({
+        title: "Item replaced",
+        description: `Swapped ${existingCategoryItem.name} for ${item.name}`,
+      });
+    } else {
+      // Add as new item
+      setOutfitItems((prev) => [...prev, { ...item, isLocked: false }]);
+      toast({
+        title: "Item added",
+        description: `Added ${item.name} to your outfit`,
+      });
+    }
+    setCurrentOutfitName(null);
+  }, [outfitItems, toast]);
 
   const tabs = [
+    { id: "search" as SidebarTab, label: "Browse", icon: Search },
     { id: "decks" as SidebarTab, label: "Saved", icon: Layers },
     { id: "suggestions" as SidebarTab, label: "For You", icon: Sparkles },
     { id: "conversations" as SidebarTab, label: "Chats", icon: MessageSquare },
@@ -452,8 +479,15 @@ export default function OutfitBuilder() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="p-4 max-h-[60vh] overflow-y-auto"
+                      className={activeTab === "search" ? "h-[60vh]" : "p-4 max-h-[60vh] overflow-y-auto"}
                     >
+                      {activeTab === "search" && (
+                        <ProductSearch
+                          gender={gender}
+                          onAddToOutfit={handleAddProductToOutfit}
+                          currentOutfitIds={currentOutfitIds}
+                        />
+                      )}
                       {activeTab === "decks" && (
                         <SavedOutfitDecks 
                           onLoadOutfit={handleLoadOutfit}
