@@ -18,8 +18,8 @@ const buttonVariants = cva(
         editorial: "bg-transparent border border-foreground/20 text-foreground hover:bg-foreground hover:text-background rounded-none tracking-wider uppercase text-xs",
         accent: "bg-accent text-accent-foreground hover:bg-accent/90 rounded-full",
         pill: "bg-card text-foreground border border-border hover:border-foreground/30 rounded-full text-xs",
-        gold: "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-amber-500/25 rounded-full transition-all duration-300",
-        "gold-outline": "border-2 border-amber-500 text-amber-600 hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:border-transparent rounded-full transition-all duration-300",
+        brown: "bg-gradient-to-r from-stone-600 to-stone-700 text-white hover:from-stone-700 hover:to-stone-800 shadow-lg hover:shadow-stone-500/25 rounded-full transition-all duration-300",
+        "brown-outline": "border-2 border-stone-500 text-stone-600 hover:bg-gradient-to-r hover:from-stone-600 hover:to-stone-700 hover:text-white hover:border-transparent rounded-full transition-all duration-300",
       },
       size: {
         default: "h-11 px-6 py-2",
