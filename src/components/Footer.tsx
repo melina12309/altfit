@@ -45,6 +45,14 @@ export function Footer() {
           </div>
         </div>
 
+        {/* Affiliate Disclosure */}
+        <div className="py-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center">
+            <strong>Affiliate Disclosure:</strong> ALT-FIT may earn a commission from purchases made through links on this site. 
+            This helps support our platform at no additional cost to you.
+          </p>
+        </div>
+
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-border">
           <p className="text-xs text-muted-foreground">

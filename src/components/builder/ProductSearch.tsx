@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Filter, X, Plus, ChevronDown, Loader2 } from "lucide-react";
+import { Search, Filter, X, Plus, ChevronDown, Loader2, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,14 @@ interface ProductSearchProps {
   onAddToOutfit: (item: OutfitItemData) => void;
   currentOutfitIds: string[];
 }
+
+// Generate redirect URL for affiliate tracking
+const getShopUrl = (productId: string) => {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const sessionId = sessionStorage.getItem("session_id") || crypto.randomUUID();
+  sessionStorage.setItem("session_id", sessionId);
+  return `${baseUrl}/functions/v1/product-redirect?productId=${productId}&sessionId=${sessionId}`;
+};
 
 export function ProductSearch({ gender, onAddToOutfit, currentOutfitIds }: ProductSearchProps) {
   const { products, loading, searchProducts } = useProducts();
@@ -50,12 +58,12 @@ export function ProductSearch({ gender, onAddToOutfit, currentOutfitIds }: Produ
   const handleAddProduct = useCallback((product: Product) => {
     const outfitItem: OutfitItemData = {
       id: product.id,
-      name: product.name,
+      name: product.title,
       brand: product.brand,
       price: product.price,
       category: product.category as OutfitItemData["category"],
-      image: product.image,
-      shopUrl: product.shop_url || undefined,
+      image: product.image_url,
+      shopUrl: getShopUrl(product.id),
       isLocked: false,
     };
     onAddToOutfit(outfitItem);
@@ -116,19 +124,24 @@ export function ProductSearch({ gender, onAddToOutfit, currentOutfitIds }: Produ
           <CollapsibleContent className="pt-3 space-y-4">
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">
-                Price Range: ${priceRange[0]} - ${priceRange[1]}
+                Price Range: €{priceRange[0]} - €{priceRange[1]}
               </label>
               <Slider
                 value={priceRange}
                 onValueChange={setPriceRange}
                 min={0}
-                max={3000}
-                step={50}
+                max={500}
+                step={10}
                 className="py-2"
               />
             </div>
           </CollapsibleContent>
         </Collapsible>
+      </div>
+
+      {/* Affiliate Disclosure */}
+      <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground border-b border-border/50">
+        We may earn a commission from purchases made through our links.
       </div>
 
       {/* Results */}
@@ -160,21 +173,32 @@ export function ProductSearch({ gender, onAddToOutfit, currentOutfitIds }: Produ
                 >
                   <div className="aspect-square overflow-hidden">
                     <img
-                      src={product.image}
-                      alt={product.name}
+                      src={product.image_url}
+                      alt={product.title}
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
                   </div>
                   
                   <div className="p-2.5">
                     <p className="text-xs text-muted-foreground truncate">{product.brand}</p>
-                    <p className="text-sm font-medium truncate">{product.name}</p>
+                    <p className="text-sm font-medium truncate">{product.title}</p>
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-sm font-semibold">${product.price}</span>
+                      <span className="text-sm font-semibold">€{product.price}</span>
                       <Badge variant="outline" className="text-[10px] capitalize">
-                        {product.category}
+                        {product.retailer}
                       </Badge>
                     </div>
+                    
+                    {/* Shop Button */}
+                    <a
+                      href={getShopUrl(product.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Shop
+                    </a>
                   </div>
 
                   {/* Add Button Overlay */}
