@@ -18,6 +18,8 @@ const buttonVariants = cva(
         editorial: "bg-transparent border border-foreground/20 text-foreground hover:bg-foreground hover:text-background rounded-none tracking-wider uppercase text-xs",
         accent: "bg-accent text-accent-foreground hover:bg-accent/90 rounded-full",
         pill: "bg-card text-foreground border border-border hover:border-foreground/30 rounded-full text-xs",
+        violet: "bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 shadow-lg hover:shadow-violet-500/25 rounded-full transition-all duration-300",
+        "violet-outline": "border-2 border-violet-500 text-violet-600 hover:bg-violet-500 hover:text-white rounded-full transition-all duration-300",
       },
       size: {
         default: "h-11 px-6 py-2",
