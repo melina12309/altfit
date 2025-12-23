@@ -8,8 +8,8 @@ const categories = [
     label: "TV Shows", 
     examples: ["Emily in Paris", "Euphoria", "Succession"],
     prompt: "Emily in Paris outfit",
-    gradient: "from-purple-500/10 to-pink-500/10",
-    iconColor: "text-purple-500"
+    gradient: "from-indigo-500/10 to-violet-500/10",
+    iconColor: "text-indigo-500"
   },
   { 
     icon: Star, 
@@ -40,8 +40,8 @@ const categories = [
     label: "Describe a Vibe", 
     examples: ["Quiet luxury", "Y2K aesthetic", "Dark academia"],
     prompt: "Quiet luxury aesthetic outfit",
-    gradient: "from-rose-500/10 to-red-500/10",
-    iconColor: "text-rose-500"
+    gradient: "from-violet-500/10 to-purple-500/10",
+    iconColor: "text-violet-500"
   },
 ];
 
