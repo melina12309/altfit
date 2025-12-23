@@ -104,7 +104,7 @@ export function Hero() {
                 />
                 <Button
                   type="submit"
-                  variant="violet"
+                  variant="gold"
                   size="icon"
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl h-10 w-10"
                 >
@@ -119,7 +119,7 @@ export function Hero() {
                 <button
                   key={prompt}
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="px-4 py-2 text-sm border border-violet-300 text-violet-600 rounded-full hover:bg-gradient-to-r hover:from-indigo-500 hover:to-violet-500 hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300"
+                  className="px-4 py-2 text-sm border border-amber-300 text-amber-700 rounded-full hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
                 >
                   {prompt}
                 </button>
