@@ -8,6 +8,8 @@ import { ChatMessage } from "@/components/chat/ChatMessage";
 import { SuggestionChips } from "@/components/chat/SuggestionChips";
 import { streamChat, fileToBase64, type Message } from "@/lib/styleChat";
 import { useToast } from "@/hooks/use-toast";
+import { useChatHistory } from "@/hooks/useChatHistory";
+import { useAuth } from "@/contexts/AuthContext";
 
 const WELCOME_MESSAGE: Message = {
   role: "assistant",
@@ -16,8 +18,11 @@ const WELCOME_MESSAGE: Message = {
 
 export default function Stylist() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get("q");
+  const conversationIdParam = searchParams.get("conversation");
+  
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +33,15 @@ export default function Stylist() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const {
+    currentConversationId,
+    setCurrentConversationId,
+    createConversation,
+    saveMessage,
+    updateAssistantMessage,
+    getConversationMessages,
+  } = useChatHistory();
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -36,11 +50,25 @@ export default function Stylist() {
     scrollToBottom();
   }, [messages]);
 
+  // Load conversation from URL param if present
+  useEffect(() => {
+    if (conversationIdParam && user) {
+      loadConversation(conversationIdParam);
+    }
+  }, [conversationIdParam, user]);
+
+  const loadConversation = async (conversationId: string) => {
+    const loadedMessages = await getConversationMessages(conversationId);
+    if (loadedMessages.length > 0) {
+      setMessages([WELCOME_MESSAGE, ...loadedMessages]);
+      setCurrentConversationId(conversationId);
+    }
+  };
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Invalid file type",
@@ -50,7 +78,6 @@ export default function Stylist() {
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -95,6 +122,17 @@ export default function Stylist() {
     clearImage();
     setIsLoading(true);
 
+    // Create or use existing conversation
+    let convId = currentConversationId;
+    if (!convId && user) {
+      convId = await createConversation(userMessage.content);
+    }
+
+    // Save user message to database
+    if (convId && user) {
+      await saveMessage(convId, "user", userMessage.content, userMessage.image);
+    }
+
     let assistantContent = "";
     
     const updateAssistant = (chunk: string) => {
@@ -110,10 +148,21 @@ export default function Stylist() {
       });
     };
 
+    // Create placeholder for assistant message in database
+    if (convId && user) {
+      await saveMessage(convId, "assistant", "...");
+    }
+
     await streamChat({
-      messages: [...messages.slice(1), userMessage], // Exclude welcome message from API
+      messages: [...messages.slice(1), userMessage],
       onDelta: updateAssistant,
-      onDone: () => setIsLoading(false),
+      onDone: async () => {
+        setIsLoading(false);
+        // Update the final assistant message in database
+        if (convId && user && assistantContent) {
+          await updateAssistantMessage(convId, assistantContent);
+        }
+      },
       onError: (error) => {
         setIsLoading(false);
         toast({
@@ -155,7 +204,12 @@ export default function Stylist() {
             </div>
             <span className="font-serif text-lg">Style Assistant</span>
           </div>
-          <div className="w-16" /> {/* Spacer for centering */}
+          <Link 
+            to="/favorites" 
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            History
+          </Link>
         </div>
       </header>
 
