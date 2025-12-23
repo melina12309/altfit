@@ -48,9 +48,6 @@ export function Header() {
             <Compass className="w-3.5 h-3.5" />
             EXPLORE
           </Link>
-          <a href="/#discover" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors">
-            DISCOVER
-          </a>
         </nav>
 
         {/* Desktop Actions */}
@@ -159,13 +156,6 @@ export function Header() {
                 <Compass className="w-4 h-4" />
                 EXPLORE
               </Link>
-              <a
-                href="/#discover"
-                className="text-sm editorial-spacing py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                DISCOVER
-              </a>
               <div className="flex items-center gap-3 pt-4 border-t border-border">
                 <Button variant="ghost" size="icon">
                   <Search className="w-5 h-5" />
