@@ -51,9 +51,17 @@ export function Header() {
           <Button variant="ghost" size="icon">
             <Search className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <Heart className="w-5 h-5" />
-          </Button>
+          {user ? (
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/favorites">
+                <Heart className="w-5 h-5" />
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon">
+              <Heart className="w-5 h-5" />
+            </Button>
+          )}
           
           {user ? (
             <DropdownMenu>
@@ -66,6 +74,13 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem className="text-muted-foreground text-xs">
                   {user.email}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/favorites" className="cursor-pointer">
+                    <Heart className="w-4 h-4 mr-2" />
+                    My Favorites
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
