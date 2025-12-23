@@ -8,40 +8,40 @@ const categories = [
     label: "TV Shows", 
     examples: ["Emily in Paris", "Euphoria", "Succession"],
     prompt: "Emily in Paris outfit",
-    gradient: "from-indigo-500/10 to-violet-500/10",
-    iconColor: "text-indigo-500"
+    gradient: "from-amber-500/10 to-orange-500/10",
+    iconColor: "text-amber-500"
   },
   { 
     icon: Star, 
     label: "Celebrities", 
     examples: ["Hailey Bieber", "Zendaya", "Bella Hadid"],
     prompt: "Hailey Bieber street style",
-    gradient: "from-amber-500/10 to-orange-500/10",
-    iconColor: "text-amber-500"
+    gradient: "from-orange-500/10 to-red-500/10",
+    iconColor: "text-orange-500"
   },
   { 
     icon: Calendar, 
     label: "Events", 
     examples: ["Met Gala", "Fashion Week", "Red Carpet"],
     prompt: "Met Gala inspired look",
-    gradient: "from-blue-500/10 to-cyan-500/10",
-    iconColor: "text-blue-500"
+    gradient: "from-yellow-500/10 to-amber-500/10",
+    iconColor: "text-yellow-600"
   },
   { 
     icon: Camera, 
     label: "Photo Match", 
     examples: ["Screenshot any outfit", "Pinterest saves", "Instagram"],
     prompt: "Help me match this outfit",
-    gradient: "from-green-500/10 to-emerald-500/10",
-    iconColor: "text-green-500"
+    gradient: "from-amber-400/10 to-yellow-500/10",
+    iconColor: "text-amber-600"
   },
   { 
     icon: Sparkles, 
     label: "Describe a Vibe", 
     examples: ["Quiet luxury", "Y2K aesthetic", "Dark academia"],
     prompt: "Quiet luxury aesthetic outfit",
-    gradient: "from-violet-500/10 to-purple-500/10",
-    iconColor: "text-violet-500"
+    gradient: "from-orange-400/10 to-amber-500/10",
+    iconColor: "text-orange-500"
   },
 ];
 
