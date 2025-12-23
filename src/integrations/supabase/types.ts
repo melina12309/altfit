@@ -174,6 +174,51 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          brand: string
+          category: string
+          colors: string[] | null
+          created_at: string
+          gender: string
+          id: string
+          image: string
+          name: string
+          price: number
+          shop_url: string | null
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          category: string
+          colors?: string[] | null
+          created_at?: string
+          gender?: string
+          id?: string
+          image: string
+          name: string
+          price: number
+          shop_url?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          colors?: string[] | null
+          created_at?: string
+          gender?: string
+          id?: string
+          image?: string
+          name?: string
+          price?: number
+          shop_url?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
