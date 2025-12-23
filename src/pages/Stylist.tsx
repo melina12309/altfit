@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, ArrowLeft, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -16,9 +16,12 @@ const WELCOME_MESSAGE: Message = {
 
 export default function Stylist() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q");
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasProcessedInitial, setHasProcessedInitial] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -67,6 +70,14 @@ export default function Stylist() {
       },
     });
   };
+
+  // Auto-send initial query from URL
+  useEffect(() => {
+    if (initialQuery && !hasProcessedInitial) {
+      setHasProcessedInitial(true);
+      sendMessage(initialQuery);
+    }
+  }, [initialQuery, hasProcessedInitial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
