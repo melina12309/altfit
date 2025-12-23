@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2 } from "lucide-react";
+import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +32,10 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
+          <Link to="/" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors flex items-center gap-1.5">
+            <Home className="w-3.5 h-3.5" />
+            HOME
+          </Link>
           <Link to="/stylist" className="text-sm editorial-spacing hover:text-muted-foreground transition-colors flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             AI STYLIST
@@ -123,6 +127,14 @@ export function Header() {
             className="md:hidden bg-background border-b border-border"
           >
             <nav className="container py-6 flex flex-col gap-4">
+              <Link
+                to="/"
+                className="text-sm editorial-spacing py-2 flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Home className="w-4 h-4" />
+                HOME
+              </Link>
               <Link
                 to="/stylist"
                 className="text-sm editorial-spacing py-2 flex items-center gap-2"
