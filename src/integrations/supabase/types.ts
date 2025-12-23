@@ -97,6 +97,41 @@ export type Database = {
           },
         ]
       }
+      clicks: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          provider: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          provider: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          provider?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_items: {
         Row: {
           collection_id: string
@@ -176,45 +211,60 @@ export type Database = {
       }
       products: {
         Row: {
+          affiliate_url: string
           brand: string
           category: string
           colors: string[] | null
           created_at: string
+          currency: string
           gender: string
           id: string
-          image: string
-          name: string
+          image_url: string
+          last_seen_at: string
           price: number
-          shop_url: string | null
-          tags: string[] | null
+          provider: string
+          provider_product_id: string
+          retailer: string
+          style_tags: string[] | null
+          title: string
           updated_at: string
         }
         Insert: {
+          affiliate_url: string
           brand: string
           category: string
           colors?: string[] | null
           created_at?: string
+          currency?: string
           gender?: string
           id?: string
-          image: string
-          name: string
+          image_url: string
+          last_seen_at?: string
           price: number
-          shop_url?: string | null
-          tags?: string[] | null
+          provider: string
+          provider_product_id: string
+          retailer: string
+          style_tags?: string[] | null
+          title: string
           updated_at?: string
         }
         Update: {
+          affiliate_url?: string
           brand?: string
           category?: string
           colors?: string[] | null
           created_at?: string
+          currency?: string
           gender?: string
           id?: string
-          image?: string
-          name?: string
+          image_url?: string
+          last_seen_at?: string
           price?: number
-          shop_url?: string | null
-          tags?: string[] | null
+          provider?: string
+          provider_product_id?: string
+          retailer?: string
+          style_tags?: string[] | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
