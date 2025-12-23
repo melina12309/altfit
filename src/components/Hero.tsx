@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import outfit1 from "@/assets/outfit-1.jpg";
 import outfit2 from "@/assets/outfit-2.jpg";
 import outfit3 from "@/assets/outfit-3.jpg";
@@ -108,14 +109,16 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Button size="lg" className="group bg-foreground text-background hover:bg-foreground/90 rounded-none px-8 h-14">
-                <Sparkles className="w-4 h-4 mr-3" />
-                Generate My Look
-                <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform" />
+              <Button asChild size="lg" className="group bg-foreground text-background hover:bg-foreground/90 rounded-none px-8 h-14">
+                <Link to="/stylist">
+                  <Sparkles className="w-4 h-4 mr-3" />
+                  Talk to AI Stylist
+                  <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
               <Button variant="outline" size="lg" className="rounded-none border-foreground/20 hover:bg-foreground hover:text-background px-8 h-14">
                 <Play className="w-4 h-4 mr-3" />
-                Watch Demo
+                Explore Looks
               </Button>
             </motion.div>
 
