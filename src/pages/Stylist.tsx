@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { SuggestionChips } from "@/components/chat/SuggestionChips";
+import { AuthPromptModal } from "@/components/AuthPromptModal";
 import { streamChat, fileToBase64, type Message } from "@/lib/styleChat";
 import { useToast } from "@/hooks/use-toast";
 import { useChatHistory } from "@/hooks/useChatHistory";
@@ -29,6 +30,10 @@ export default function Stylist() {
   const [hasProcessedInitial, setHasProcessedInitial] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [hasSeenAuthPrompt, setHasSeenAuthPrompt] = useState(() => {
+    return sessionStorage.getItem("stylist_auth_prompt_seen") === "true";
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +54,22 @@ export default function Stylist() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Show auth prompt for first-time unauthenticated users
+  useEffect(() => {
+    if (!user && !hasSeenAuthPrompt) {
+      const timer = setTimeout(() => {
+        setShowAuthPrompt(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, hasSeenAuthPrompt]);
+
+  const handleCloseAuthPrompt = () => {
+    setShowAuthPrompt(false);
+    setHasSeenAuthPrompt(true);
+    sessionStorage.setItem("stylist_auth_prompt_seen", "true");
+  };
 
   // Load conversation from URL param if present
   useEffect(() => {
@@ -191,6 +212,11 @@ export default function Stylist() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <AuthPromptModal
+        isOpen={showAuthPrompt}
+        onClose={handleCloseAuthPrompt}
+        feature="stylist"
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
