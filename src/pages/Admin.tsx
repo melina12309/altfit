@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Package, 
   RefreshCw, 
@@ -33,7 +34,11 @@ import {
   Eye,
   EyeOff,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Save
 } from "lucide-react";
 
 interface ImportResult {
@@ -93,6 +98,22 @@ export default function Admin() {
   const [genderFilter, setGenderFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  
+  // Manual product form state
+  const [newProduct, setNewProduct] = useState({
+    title: "",
+    brand: "",
+    category: "tops",
+    gender: "unisex",
+    price: "",
+    currency: "EUR",
+    retailer: "",
+    affiliate_url: "",
+    image_url: "",
+    colors: "",
+    style_tags: "",
+  });
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
@@ -502,6 +523,74 @@ export default function Admin() {
     }
   };
 
+  const handleAddProduct = async () => {
+    if (!newProduct.title || !newProduct.brand || !newProduct.affiliate_url || !newProduct.image_url || !newProduct.price) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all required fields (title, brand, price, affiliate URL, image URL)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingProduct(true);
+    try {
+      const colorsArray = newProduct.colors.split(",").map(c => c.trim()).filter(Boolean);
+      const styleTagsArray = newProduct.style_tags.split(",").map(t => t.trim()).filter(Boolean);
+
+      const { error } = await supabase.from("products").insert({
+        title: newProduct.title,
+        brand: newProduct.brand,
+        category: newProduct.category,
+        gender: newProduct.gender,
+        price: parseFloat(newProduct.price),
+        currency: newProduct.currency,
+        retailer: newProduct.retailer || newProduct.brand,
+        affiliate_url: newProduct.affiliate_url,
+        image_url: newProduct.image_url,
+        colors: colorsArray.length > 0 ? colorsArray : null,
+        style_tags: styleTagsArray.length > 0 ? styleTagsArray : null,
+        provider: "manual",
+        provider_product_id: `manual_${Date.now()}`,
+        is_active: true,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Product Added",
+        description: `"${newProduct.title}" has been added to the catalog`,
+      });
+
+      // Reset form
+      setNewProduct({
+        title: "",
+        brand: "",
+        category: "tops",
+        gender: "unisex",
+        price: "",
+        currency: "EUR",
+        retailer: "",
+        affiliate_url: "",
+        image_url: "",
+        colors: "",
+        style_tags: "",
+      });
+
+      fetchStats();
+      fetchProducts();
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingProduct(false);
+    }
+  };
+
   // Loading state
   if (checkingRole) {
     return (
@@ -587,9 +676,213 @@ export default function Admin() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="add">Add Product</TabsTrigger>
             <TabsTrigger value="import">Import</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
           </TabsList>
+
+          {/* Add Product Tab */}
+          <TabsContent value="add" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Add Affiliate Product
+                </CardTitle>
+                <CardDescription>
+                  Manually add products from AWIN or other affiliate programs
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Product Title *</Label>
+                      <Input
+                        id="title"
+                        placeholder="e.g., Classic White Cotton T-Shirt"
+                        value={newProduct.title}
+                        onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="brand">Brand *</Label>
+                      <Input
+                        id="brand"
+                        placeholder="e.g., Nike, Zara, H&M"
+                        value={newProduct.brand}
+                        onChange={(e) => setNewProduct({ ...newProduct, brand: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Category *</Label>
+                        <Select
+                          value={newProduct.category}
+                          onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tops">Tops</SelectItem>
+                            <SelectItem value="bottoms">Bottoms</SelectItem>
+                            <SelectItem value="outerwear">Outerwear</SelectItem>
+                            <SelectItem value="dresses">Dresses</SelectItem>
+                            <SelectItem value="shoes">Shoes</SelectItem>
+                            <SelectItem value="accessories">Accessories</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Gender *</Label>
+                        <Select
+                          value={newProduct.gender}
+                          onValueChange={(value) => setNewProduct({ ...newProduct, gender: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="men">Men</SelectItem>
+                            <SelectItem value="women">Women</SelectItem>
+                            <SelectItem value="unisex">Unisex</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="price">Price *</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          placeholder="29.99"
+                          value={newProduct.price}
+                          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="currency">Currency</Label>
+                        <Select
+                          value={newProduct.currency}
+                          onValueChange={(value) => setNewProduct({ ...newProduct, currency: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="EUR">EUR (€)</SelectItem>
+                            <SelectItem value="USD">USD ($)</SelectItem>
+                            <SelectItem value="GBP">GBP (£)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="retailer">Retailer</Label>
+                      <Input
+                        id="retailer"
+                        placeholder="e.g., ASOS, Zalando (optional, defaults to brand)"
+                        value={newProduct.retailer}
+                        onChange={(e) => setNewProduct({ ...newProduct, retailer: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="affiliate_url" className="flex items-center gap-1">
+                        <LinkIcon className="h-3.5 w-3.5" />
+                        Affiliate Link *
+                      </Label>
+                      <Input
+                        id="affiliate_url"
+                        type="url"
+                        placeholder="https://www.awin1.com/..."
+                        value={newProduct.affiliate_url}
+                        onChange={(e) => setNewProduct({ ...newProduct, affiliate_url: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The tracking link from your affiliate program
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="image_url" className="flex items-center gap-1">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Product Image URL *
+                      </Label>
+                      <Input
+                        id="image_url"
+                        type="url"
+                        placeholder="https://images.example.com/product.jpg"
+                        value={newProduct.image_url}
+                        onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+                      />
+                      {newProduct.image_url && (
+                        <div className="mt-2 relative aspect-square w-32 rounded-lg overflow-hidden border border-border">
+                          <img
+                            src={newProduct.image_url}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="colors">Colors</Label>
+                      <Input
+                        id="colors"
+                        placeholder="white, black, blue (comma-separated)"
+                        value={newProduct.colors}
+                        onChange={(e) => setNewProduct({ ...newProduct, colors: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="style_tags">Style Tags</Label>
+                      <Input
+                        id="style_tags"
+                        placeholder="casual, streetwear, minimalist (comma-separated)"
+                        value={newProduct.style_tags}
+                        onChange={(e) => setNewProduct({ ...newProduct, style_tags: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-border">
+                  <Button onClick={handleAddProduct} disabled={isAddingProduct}>
+                    {isAddingProduct ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Add Product
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
