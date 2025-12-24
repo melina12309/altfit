@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, Heart, User, LogOut, Sparkles, Compass, Wand2, Home, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +15,27 @@ import {
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      
+      const { data } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      setIsAdmin(data === true);
+    };
+    
+    checkAdminRole();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -92,12 +112,14 @@ export function Header() {
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin" className="cursor-pointer">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Admin
-                  </Link>
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="cursor-pointer">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" />
