@@ -13,6 +13,7 @@ import { BuilderConversations } from "@/components/builder/BuilderConversations"
 import { BuilderSuggestions } from "@/components/builder/BuilderSuggestions";
 import { SavedOutfitDecks } from "@/components/builder/SavedOutfitDecks";
 import { ProductSearch } from "@/components/builder/ProductSearch";
+import { AuthPromptModal } from "@/components/AuthPromptModal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOutfitBuilder, SavedOutfit } from "@/hooks/useOutfitBuilder";
@@ -56,6 +57,10 @@ export default function OutfitBuilder() {
   const [currentOutfitName, setCurrentOutfitName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<SidebarTab>("search");
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [hasSeenAuthPrompt, setHasSeenAuthPrompt] = useState(() => {
+    return sessionStorage.getItem("builder_auth_prompt_seen") === "true";
+  });
 
   // Load shared outfit from URL
   useEffect(() => {
@@ -89,6 +94,22 @@ export default function OutfitBuilder() {
       });
     }
   }, [user, wardrobeLoaded, loadWardrobe, shareParam]);
+
+  // Show auth prompt for first-time unauthenticated users
+  useEffect(() => {
+    if (!user && !hasSeenAuthPrompt) {
+      const timer = setTimeout(() => {
+        setShowAuthPrompt(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, hasSeenAuthPrompt]);
+
+  const handleCloseAuthPrompt = () => {
+    setShowAuthPrompt(false);
+    setHasSeenAuthPrompt(true);
+    sessionStorage.setItem("builder_auth_prompt_seen", "true");
+  };
 
   // Update outfit when gender changes
   useEffect(() => {
@@ -276,6 +297,11 @@ export default function OutfitBuilder() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <AuthPromptModal
+        isOpen={showAuthPrompt}
+        onClose={handleCloseAuthPrompt}
+        feature="builder"
+      />
 
       <main className="pt-24 pb-16">
         <div className="container">
