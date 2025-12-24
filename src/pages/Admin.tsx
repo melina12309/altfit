@@ -38,7 +38,10 @@ import {
   Plus,
   Link as LinkIcon,
   Image as ImageIcon,
-  Save
+  Save,
+  BarChart3,
+  MousePointerClick,
+  UserPlus
 } from "lucide-react";
 
 interface ImportResult {
@@ -115,6 +118,22 @@ export default function Admin() {
   });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
 
+  // Analytics state
+  interface AnalyticsData {
+    totalEvents: number;
+    uniqueSessions: number;
+    authPromptStats: {
+      shown: number;
+      dismissed: number;
+      clicked: number;
+      conversionRate: number;
+    };
+    topEvents: { event_name: string; count: number }[];
+    recentEvents: { event_name: string; page: string; created_at: string }[];
+  }
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
   // Check if user is admin
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -153,8 +172,81 @@ export default function Admin() {
     if (!checkingRole && isAdmin) {
       fetchStats();
       fetchProducts();
+      fetchAnalytics();
     }
   }, [checkingRole, isAdmin]);
+
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      // Fetch total events
+      const { count: totalEvents } = await supabase
+        .from("analytics_events")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch unique sessions
+      const { data: sessionData } = await supabase
+        .from("analytics_events")
+        .select("session_id");
+      const uniqueSessions = new Set(sessionData?.map(e => e.session_id)).size;
+
+      // Fetch auth prompt stats
+      const { count: shown } = await supabase
+        .from("analytics_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_name", "auth_prompt_shown");
+
+      const { count: dismissed } = await supabase
+        .from("analytics_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_name", "auth_prompt_dismissed");
+
+      const { count: clicked } = await supabase
+        .from("analytics_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_name", "auth_prompt_clicked");
+
+      const conversionRate = shown ? ((clicked || 0) / shown) * 100 : 0;
+
+      // Fetch top events
+      const { data: eventsData } = await supabase
+        .from("analytics_events")
+        .select("event_name");
+
+      const eventCounts: Record<string, number> = {};
+      eventsData?.forEach(e => {
+        eventCounts[e.event_name] = (eventCounts[e.event_name] || 0) + 1;
+      });
+      const topEvents = Object.entries(eventCounts)
+        .map(([event_name, count]) => ({ event_name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Fetch recent events
+      const { data: recentEvents } = await supabase
+        .from("analytics_events")
+        .select("event_name, page, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      setAnalyticsData({
+        totalEvents: totalEvents || 0,
+        uniqueSessions,
+        authPromptStats: {
+          shown: shown || 0,
+          dismissed: dismissed || 0,
+          clicked: clicked || 0,
+          conversionRate,
+        },
+        topEvents,
+        recentEvents: recentEvents || [],
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -676,10 +768,167 @@ export default function Admin() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="add">Add Product</TabsTrigger>
             <TabsTrigger value="import">Import</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
           </TabsList>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">User Analytics</h2>
+                <p className="text-sm text-muted-foreground">Track user engagement and auth prompt performance</p>
+              </div>
+              <Button variant="outline" onClick={fetchAnalytics} disabled={analyticsLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : analyticsData ? (
+              <>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">{analyticsData.totalEvents.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground mt-1">All tracked events</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium">Unique Sessions</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">{analyticsData.uniqueSessions.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Distinct visitors</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium">Auth Prompts Shown</CardTitle>
+                      <Eye className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-blue-600">{analyticsData.authPromptStats.shown}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Total impressions</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="text-sm font-medium">Prompt Conversion</CardTitle>
+                      <UserPlus className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-green-600">
+                        {analyticsData.authPromptStats.conversionRate.toFixed(1)}%
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {analyticsData.authPromptStats.clicked} clicked / {analyticsData.authPromptStats.shown} shown
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Auth Prompt Breakdown */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Auth Prompt Performance</CardTitle>
+                    <CardDescription>Breakdown of user responses to sign-in prompts</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{analyticsData.authPromptStats.shown}</div>
+                        <p className="text-sm text-muted-foreground">Prompts Shown</p>
+                      </div>
+                      <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{analyticsData.authPromptStats.clicked}</div>
+                        <p className="text-sm text-muted-foreground">Clicked Sign In</p>
+                      </div>
+                      <div className="text-center p-4 bg-secondary/30 rounded-lg">
+                        <div className="text-2xl font-bold text-muted-foreground">{analyticsData.authPromptStats.dismissed}</div>
+                        <p className="text-sm text-muted-foreground">Continued as Guest</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Top Events */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Top Events</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {analyticsData.topEvents.map((event) => (
+                          <div key={event.event_name} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">{event.event_name}</span>
+                            </div>
+                            <Badge variant="secondary">{event.count}</Badge>
+                          </div>
+                        ))}
+                        {analyticsData.topEvents.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-4">No events recorded yet</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Events */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Recent Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[300px]">
+                        <div className="space-y-2">
+                          {analyticsData.recentEvents.map((event, index) => (
+                            <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                              <div>
+                                <p className="text-sm font-medium">{event.event_name}</p>
+                                <p className="text-xs text-muted-foreground">{event.page}</p>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(event.created_at).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          ))}
+                          {analyticsData.recentEvents.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No analytics data available yet</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
           {/* Add Product Tab */}
           <TabsContent value="add" className="space-y-6">

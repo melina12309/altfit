@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { analytics } from "@/lib/analytics";
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -25,6 +27,22 @@ export function AuthPromptModal({ isOpen, onClose, feature }: AuthPromptModalPro
 
   const { title, description, icon: Icon } = featureText[feature];
 
+  // Track when modal is shown
+  useEffect(() => {
+    if (isOpen) {
+      analytics.authPromptShown(feature);
+    }
+  }, [isOpen, feature]);
+
+  const handleDismiss = () => {
+    analytics.authPromptDismissed(feature);
+    onClose();
+  };
+
+  const handleAuthClick = (action: "sign_in" | "create_account") => {
+    analytics.authPromptClicked(feature, action);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -34,7 +52,7 @@ export function AuthPromptModal({ isOpen, onClose, feature }: AuthPromptModalPro
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleDismiss}
             className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
           />
           
@@ -49,7 +67,7 @@ export function AuthPromptModal({ isOpen, onClose, feature }: AuthPromptModalPro
               {/* Header */}
               <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-8 text-center">
                 <button
-                  onClick={onClose}
+                  onClick={handleDismiss}
                   className="absolute top-4 right-4 p-2 rounded-full hover:bg-background/50 transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -67,20 +85,20 @@ export function AuthPromptModal({ isOpen, onClose, feature }: AuthPromptModalPro
 
               {/* Actions */}
               <div className="p-6 space-y-3">
-                <Button asChild className="w-full" size="lg">
+                <Button asChild className="w-full" size="lg" onClick={() => handleAuthClick("sign_in")}>
                   <Link to="/auth">
                     Sign In
                   </Link>
                 </Button>
                 
-                <Button asChild variant="outline" className="w-full" size="lg">
+                <Button asChild variant="outline" className="w-full" size="lg" onClick={() => handleAuthClick("create_account")}>
                   <Link to="/auth?mode=signup">
                     Create Account
                   </Link>
                 </Button>
                 
                 <button
-                  onClick={onClose}
+                  onClick={handleDismiss}
                   className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
                   Continue as guest
