@@ -6,6 +6,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sanitize user input by escaping special SQL pattern characters
+const sanitizeForLike = (input: string): string => {
+  // Escape %, _, and backslash which have special meaning in LIKE/ILIKE
+  return input.replace(/[%_\\]/g, '\\$&');
+};
+
+// Validate gender against allowed values
+const validGenders = ['men', 'women', 'unisex'] as const;
+const isValidGender = (gender: unknown): gender is string => {
+  return typeof gender === 'string' && validGenders.includes(gender as typeof validGenders[number]);
+};
+
+// Validate and sanitize string input
+const sanitizeString = (input: unknown, maxLength = 200): string | null => {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > maxLength) return null;
+  return sanitizeForLike(trimmed);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,20 +46,22 @@ serve(async (req) => {
       .from("products")
       .select("*");
 
-    // Text search across title, brand, category
-    if (query && query.trim()) {
+    // Text search across title, brand, category - SANITIZED
+    const safeQuery = sanitizeString(query);
+    if (safeQuery) {
       dbQuery = dbQuery.or(
-        `title.ilike.%${query}%,brand.ilike.%${query}%,category.ilike.%${query}%`
+        `title.ilike.%${safeQuery}%,brand.ilike.%${safeQuery}%,category.ilike.%${safeQuery}%`
       );
     }
 
-    // Category filter
-    if (filters?.category && filters.category !== "all") {
+    // Category filter - SANITIZED
+    const safeCategory = sanitizeString(filters?.category);
+    if (safeCategory && safeCategory !== "all") {
       dbQuery = dbQuery.eq("category", filters.category);
     }
 
-    // Gender filter (include unisex items)
-    if (filters?.gender) {
+    // Gender filter (include unisex items) - VALIDATED against allowed values
+    if (isValidGender(filters?.gender)) {
       dbQuery = dbQuery.or(`gender.eq.${filters.gender},gender.eq.unisex`);
     }
 
