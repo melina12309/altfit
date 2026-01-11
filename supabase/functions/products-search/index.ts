@@ -6,6 +6,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per minute per IP
+const rateLimitStore = new Map<string, { count: number; windowStart: number }>();
+
+// Get client IP from request headers
+const getClientIP = (req: Request): string => {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+         req.headers.get("x-real-ip") ||
+         req.headers.get("cf-connecting-ip") ||
+         "unknown";
+};
+
+// Check rate limit for an IP
+const checkRateLimit = (ip: string): { allowed: boolean; remaining: number; resetIn: number } => {
+  const now = Date.now();
+  const record = rateLimitStore.get(ip);
+  
+  // Clean up old entries periodically (every 100 checks)
+  if (Math.random() < 0.01) {
+    for (const [key, value] of rateLimitStore.entries()) {
+      if (now - value.windowStart > RATE_LIMIT_WINDOW_MS * 2) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+  
+  if (!record || now - record.windowStart > RATE_LIMIT_WINDOW_MS) {
+    // New window
+    rateLimitStore.set(ip, { count: 1, windowStart: now });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+  
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    const resetIn = RATE_LIMIT_WINDOW_MS - (now - record.windowStart);
+    return { allowed: false, remaining: 0, resetIn };
+  }
+  
+  record.count++;
+  return { 
+    allowed: true, 
+    remaining: MAX_REQUESTS_PER_WINDOW - record.count,
+    resetIn: RATE_LIMIT_WINDOW_MS - (now - record.windowStart)
+  };
+};
+
 // Sanitize user input by escaping special SQL pattern characters
 const sanitizeForLike = (input: string): string => {
   // Escape %, _, and backslash which have special meaning in LIKE/ILIKE
@@ -29,6 +75,27 @@ const sanitizeString = (input: unknown, maxLength = 200): string | null => {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Apply rate limiting
+  const clientIP = getClientIP(req);
+  const rateLimit = checkRateLimit(clientIP);
+  
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": MAX_REQUESTS_PER_WINDOW.toString(),
+    "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+    "X-RateLimit-Reset": Math.ceil(rateLimit.resetIn / 1000).toString(),
+  };
+
+  if (!rateLimit.allowed) {
+    console.log(`Rate limit exceeded for IP: ${clientIP.substring(0, 10)}...`);
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please try again later." }),
+      {
+        status: 429,
+        headers: { ...corsHeaders, ...rateLimitHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
@@ -111,7 +178,7 @@ serve(async (req) => {
     console.log(`Found ${data?.length || 0} products`);
 
     return new Response(JSON.stringify({ products: data || [] }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...rateLimitHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("products-search error:", error);
