@@ -245,6 +245,33 @@ async function processFeedStreaming(
   return { parsed, imported, errors };
 }
 
+// ── Fetch feed list and build a map of feed ID → {url, name} ──
+async function fetchFeedMap(): Promise<Map<string, { url: string; name: string }>> {
+  console.log("Fetching feed list to resolve URLs...");
+  const response = await fetch(FEED_LIST_URL);
+  if (!response.ok) throw new Error(`Feed list fetch failed: ${response.status}`);
+
+  const csvContent = await response.text();
+  const lines = csvContent.split("\n").filter(l => l.trim());
+  const headers = parseCSVLine(lines[0]);
+  const map = new Map<string, { url: string; name: string }>();
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const feed: Record<string, string> = {};
+    headers.forEach((h, idx) => { feed[h.trim()] = values[idx] || ""; });
+
+    const feedId = feed["Feed ID"] || "";
+    const feedUrl = feed["URL"] || "";
+    const advertiser = feed["Advertiser Name"] || "";
+    if (feedId && feedUrl) {
+      map.set(feedId, { url: feedUrl, name: advertiser });
+    }
+  }
+
+  return map;
+}
+
 // ── Main handler ────────────────────────────────────────────
 
 serve(async (req) => {
