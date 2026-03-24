@@ -338,48 +338,49 @@ serve(async (req) => {
     }
 
     // ── Action: import (one feed at a time) ──
-    // IMPORTANT: To stay within memory limits, import ONE feed per invocation.
-    // The admin UI should call this once per feed with ?feeds=FXXX&limit=1000
-
     console.log("Starting AWIN feed import...");
+
+    // Always fetch the feed list to resolve real download URLs
+    const feedMap = await fetchFeedMap();
+    console.log(`Feed map has ${feedMap.size} entries`);
 
     let feedUrls: { id: string; url: string; name: string }[] = [];
 
     if (feedIds.length > 0) {
-      feedUrls = feedIds.map(id => ({
-        id,
-        url: `https://ui.awin.com/productdata-darwin-download/publisher/${PUBLISHER_ID}/${API_KEY}/1/feed/${id}.csv.gz`,
-        name: id,
-      }));
-    } else {
-      // No feeds specified → list active feeds but only import the FIRST one
-      // to avoid memory issues. The admin UI should loop through feeds one by one.
-      console.log("Fetching feed list to find active feeds...");
-      const listResponse = await fetch(FEED_LIST_URL);
-      if (!listResponse.ok) throw new Error(`Feed list fetch failed: ${listResponse.status}`);
-
-      const csvContent = await listResponse.text();
-      const lines = csvContent.split("\n").filter(l => l.trim());
-      const listHeaders = parseCSVLine(lines[0]);
-
-      const allActive: { id: string; url: string; name: string }[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i]);
-        const feed: Record<string, string> = {};
-        listHeaders.forEach((h, idx) => { feed[h.trim()] = values[idx] || ""; });
-
-        if (feed["Membership Status"] === "active" && feed["URL"]) {
-          allActive.push({ id: feed["Feed ID"], url: feed["URL"], name: feed["Advertiser Name"] });
+      // Resolve each requested feed ID to its real URL from the feed list
+      const notFound: string[] = [];
+      for (const id of feedIds) {
+        const entry = feedMap.get(id);
+        if (entry) {
+          feedUrls.push({ id, url: entry.url, name: entry.name });
+        } else {
+          notFound.push(id);
         }
       }
-
-      console.log(`Found ${allActive.length} active feeds — importing first one only to avoid memory limits`);
+      if (notFound.length > 0) {
+        console.warn(`Feed IDs not found in feed list: ${notFound.join(", ")}`);
+      }
+      if (feedUrls.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `None of the requested feed IDs were found: ${feedIds.join(", ")}. Use ?action=list to see available feeds.`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      // No feeds specified → return the list of active feeds for the admin UI to pick from
+      const allActive: { id: string; url: string; name: string }[] = [];
+      for (const [id, entry] of feedMap) {
+        allActive.push({ id, url: entry.url, name: entry.name });
+      }
 
       if (allActive.length === 0) {
         return new Response(
           JSON.stringify({
             success: true,
-            message: "No active feeds found. Join advertiser programs on AWIN first, or specify feed IDs with ?feeds=F1400",
+            message: "No active feeds found. Join advertiser programs on AWIN first.",
             imported: 0,
             allActiveFeeds: [],
           }),
@@ -387,15 +388,11 @@ serve(async (req) => {
         );
       }
 
-      feedUrls = [allActive[0]];
-
-      // Return the full list so the admin UI can queue the rest
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Found ${allActive.length} active feeds. Import them one at a time using ?feeds=FXXX&limit=1000`,
+          message: `Found ${allActive.length} feeds. Import them one at a time using ?feeds=FEED_ID&limit=1000`,
           allActiveFeeds: allActive.map(f => ({ feed_id: f.id, name: f.name })),
-          importing: allActive[0],
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
