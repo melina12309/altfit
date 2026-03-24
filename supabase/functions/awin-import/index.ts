@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { gunzip } from "https://deno.land/x/compress@v0.4.5/gzip/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,41 +10,33 @@ const PUBLISHER_ID = "2703836";
 const API_KEY = "b0a6142471b0ec84e434511a422c3174";
 const FEED_LIST_URL = `https://ui.awin.com/productdata-darwin-download/publisher/${PUBLISHER_ID}/${API_KEY}/1/feedList`;
 
-// Map category from Google Shopping or AWIN category fields
+// ── Helpers ──────────────────────────────────────────────────
+
 function mapCategory(categoryName: string, productType: string, title: string): string {
   const text = `${categoryName} ${productType} ${title}`.toLowerCase();
-
   if (text.includes("dress") && !text.includes("dresser")) return "dresses";
   if (text.includes("top") || text.includes("shirt") || text.includes("blouse") || text.includes("t-shirt") || text.includes("sweater") || text.includes("jumper") || text.includes("polo") || text.includes("vest") || text.includes("tee") || text.includes("tank") || text.includes("camisole") || text.includes("bodysuit")) return "tops";
   if (text.includes("trouser") || text.includes("pant") || text.includes("jean") || text.includes("skirt") || text.includes("short") || text.includes("legging") || text.includes("jogger") || text.includes("chino")) return "bottoms";
   if (text.includes("shoe") || text.includes("boot") || text.includes("sneaker") || text.includes("sandal") || text.includes("heel") || text.includes("loafer") || text.includes("trainer") || text.includes("footwear") || text.includes("slipper") || text.includes("mule") || text.includes("pump") || text.includes("espadrille")) return "shoes";
   if (text.includes("jacket") || text.includes("coat") || text.includes("blazer") || text.includes("cardigan") || text.includes("outerwear") || text.includes("hoodie") || text.includes("parka") || text.includes("gilet") || text.includes("windbreaker") || text.includes("trench") || text.includes("puffer")) return "outerwear";
   if (text.includes("bag") || text.includes("accessor") || text.includes("hat") || text.includes("scarf") || text.includes("belt") || text.includes("jewel") || text.includes("watch") || text.includes("sunglasses") || text.includes("wallet") || text.includes("glove") || text.includes("earring") || text.includes("necklace") || text.includes("bracelet") || text.includes("ring") || text.includes("pendant") || text.includes("chain") || text.includes("charm")) return "accessories";
-
   return "other";
 }
 
-// Map gender from available fields
 function mapGender(gender: string, categoryName: string, title: string): string {
-  // Google Shopping feeds have a dedicated gender field
   const g = (gender || "").toLowerCase().trim();
   if (g === "female" || g === "women" || g === "woman") return "women";
   if (g === "male" || g === "men" || g === "man") return "men";
   if (g === "unisex") return "unisex";
-
-  // Fallback to text matching
   const text = `${categoryName} ${title}`.toLowerCase();
   if (text.includes("women") || text.includes("woman") || text.includes("female") || text.includes("ladies") || text.includes("girl")) return "women";
   if ((text.includes("men") || text.includes("male") || text.includes("boy")) && !text.includes("women")) return "men";
-
   return "unisex";
 }
 
-// Parse style tags from product data
 function parseStyleTags(title: string, description: string, categoryName: string): string[] {
   const tags: string[] = [];
   const text = `${title} ${description || ""} ${categoryName || ""}`.toLowerCase();
-
   const styleMappings: Record<string, string[]> = {
     "minimalist": ["minimal", "simple", "clean", "basic"],
     "casual": ["casual", "everyday", "relaxed", "comfort", "weekend"],
@@ -58,21 +49,15 @@ function parseStyleTags(title: string, description: string, categoryName: string
     "preppy": ["preppy", "collegiate", "nautical"],
     "romantic": ["romantic", "feminine", "floral", "lace", "ruffle"],
   };
-
   for (const [tag, keywords] of Object.entries(styleMappings)) {
-    if (keywords.some(kw => text.includes(kw))) {
-      tags.push(tag);
-    }
+    if (keywords.some(kw => text.includes(kw))) tags.push(tag);
   }
-
   return tags.length > 0 ? tags : ["casual"];
 }
 
-// Parse colors from product data
 function parseColors(title: string, description: string, color: string): string[] {
   const colors: string[] = [];
   const text = `${color || ""} ${title} ${description || ""}`.toLowerCase();
-
   const colorKeywords = [
     "black", "white", "grey", "gray", "navy", "blue", "red", "green",
     "brown", "beige", "cream", "pink", "purple", "orange", "yellow",
@@ -80,106 +65,39 @@ function parseColors(title: string, description: string, color: string): string[
     "silver", "gold", "nude", "charcoal", "ivory", "indigo", "maroon",
     "rose", "lilac", "mint", "sage", "rust", "terracotta", "copper",
   ];
-
   for (const c of colorKeywords) {
-    if (text.includes(c)) {
-      colors.push(c);
-    }
+    if (text.includes(c)) colors.push(c);
   }
-
   return colors;
 }
 
-// Parse price from various formats: "98.00 EUR", "98.00", "EUR 98.00"
 function parsePrice(priceStr: string): { price: number; currency: string } {
   if (!priceStr) return { price: 0, currency: "EUR" };
-
-  const cleaned = priceStr.trim();
-  // Match number and optional currency
-  const match = cleaned.match(/([A-Z]{3})?\s*([\d,.]+)\s*([A-Z]{3})?/);
+  const match = priceStr.trim().match(/([A-Z]{3})?\s*([\d,.]+)\s*([A-Z]{3})?/);
   if (!match) return { price: 0, currency: "EUR" };
-
-  const currency = match[1] || match[3] || "EUR";
-  const priceNum = parseFloat(match[2].replace(",", ".")) || 0;
-
-  return { price: priceNum, currency };
+  return { price: parseFloat(match[2].replace(",", ".")) || 0, currency: match[1] || match[3] || "EUR" };
 }
 
-// Parse CSV line handling quoted fields
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;
-
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-
     if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = "";
+      result.push(current); current = "";
     } else {
       current += char;
     }
   }
-
   result.push(current);
   return result;
 }
 
-// Fetch and parse a single feed
-async function fetchFeed(feedUrl: string, limit: number): Promise<Record<string, string>[]> {
-  console.log(`Fetching feed: ${feedUrl.substring(0, 80)}...`);
-  const response = await fetch(feedUrl);
-
-  if (!response.ok) {
-    throw new Error(`Feed fetch failed: ${response.status} ${response.statusText}`);
-  }
-
-  const gzippedData = new Uint8Array(await response.arrayBuffer());
-  console.log(`Downloaded ${gzippedData.length} bytes`);
-
-  const decompressedData = gunzip(gzippedData);
-  // Handle BOM
-  let csvContent = new TextDecoder().decode(decompressedData);
-  if (csvContent.charCodeAt(0) === 0xFEFF) {
-    csvContent = csvContent.slice(1);
-  }
-
-  const lines = csvContent.split("\n").filter(line => line.trim());
-  if (lines.length < 2) return [];
-
-  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
-  console.log(`Feed headers: ${headers.slice(0, 10).join(", ")}...`);
-
-  const rows: Record<string, string>[] = [];
-  const maxRows = Math.min(lines.length, limit + 1); // +1 for header
-
-  for (let i = 1; i < maxRows; i++) {
-    try {
-      const values = parseCSVLine(lines[i]);
-      const row: Record<string, string> = {};
-      headers.forEach((h, idx) => {
-        row[h] = values[idx] || "";
-      });
-      rows.push(row);
-    } catch {
-      // Skip malformed rows
-    }
-  }
-
-  return rows;
-}
-
-// Transform a row (from either feed format) into a product for upsert
 function transformRow(row: Record<string, string>): Record<string, unknown> | null {
-  // Google Shopping format fields
   const title = row["title"] || row["product_name"] || "";
   const id = row["id"] || row["aw_product_id"] || "";
   const awDeepLink = row["aw_deep_link"] || row["aw_mobile_link"] || "";
@@ -194,20 +112,12 @@ function transformRow(row: Record<string, string>): Record<string, unknown> | nu
   const availability = row["availability"] || row["in_stock"] || "";
   const condition = row["condition"] || "";
 
-  // Skip invalid products
   if (!id || !title || !awDeepLink || !imageUrl) return null;
-
-  // Skip out of stock
   if (availability && availability !== "in_stock" && availability !== "1" && availability !== "yes") return null;
-
-  // Skip used/refurbished
   if (condition && condition !== "new" && condition !== "") return null;
 
   const { price, currency } = parsePrice(priceRaw);
   if (price <= 0) return null;
-
-  const mappedCategory = mapCategory(category, row["product_type"] || "", title);
-  const mappedGender = mapGender(gender, category, title);
 
   return {
     provider: "awin_feed",
@@ -215,10 +125,9 @@ function transformRow(row: Record<string, string>): Record<string, unknown> | nu
     title: title.substring(0, 500),
     brand: brand.substring(0, 200),
     retailer: retailer.substring(0, 200),
-    price,
-    currency,
-    category: mappedCategory,
-    gender: mappedGender,
+    price, currency,
+    category: mapCategory(category, row["product_type"] || "", title),
+    gender: mapGender(gender, category, title),
     image_url: imageUrl,
     affiliate_url: awDeepLink,
     style_tags: parseStyleTags(title, description, category),
@@ -227,6 +136,116 @@ function transformRow(row: Record<string, string>): Record<string, unknown> | nu
     is_active: true,
   };
 }
+
+// ── Streaming feed processor ────────────────────────────────
+// Instead of decompressing the entire gzip into memory, we now
+// use DecompressionStream to stream the CSV and process line-by-line.
+
+async function processFeedStreaming(
+  feedUrl: string,
+  limit: number,
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ parsed: number; imported: number; errors: number }> {
+  console.log(`Fetching feed: ${feedUrl.substring(0, 80)}...`);
+  const response = await fetch(feedUrl);
+  if (!response.ok) throw new Error(`Feed fetch failed: ${response.status}`);
+  if (!response.body) throw new Error("No response body");
+
+  // Stream-decompress gzip
+  const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
+  const reader = decompressedStream.pipeThrough(new TextDecoderStream()).getReader();
+
+  let headers: string[] | null = null;
+  let leftover = "";
+  let parsed = 0;
+  let imported = 0;
+  let errors = 0;
+  let batch: Record<string, unknown>[] = [];
+  const BATCH_SIZE = 100;
+  let bomStripped = false;
+
+  async function flushBatch() {
+    if (batch.length === 0) return;
+    const toUpsert = batch.splice(0);
+    const { error } = await supabase
+      .from("products")
+      .upsert(toUpsert, { onConflict: "provider,provider_product_id", ignoreDuplicates: false });
+    if (error) {
+      console.error("Batch upsert error:", error.message);
+      errors += toUpsert.length;
+    } else {
+      imported += toUpsert.length;
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    let chunk = leftover + value;
+
+    // Strip BOM from very first chunk
+    if (!bomStripped) {
+      if (chunk.charCodeAt(0) === 0xFEFF) chunk = chunk.slice(1);
+      bomStripped = true;
+    }
+
+    const lines = chunk.split("\n");
+    // Last element may be incomplete – save for next iteration
+    leftover = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      if (!headers) {
+        headers = parseCSVLine(trimmed).map(h => h.trim().toLowerCase());
+        console.log(`Headers: ${headers.slice(0, 8).join(", ")}...`);
+        continue;
+      }
+
+      if (parsed >= limit) break;
+
+      try {
+        const values = parseCSVLine(trimmed);
+        const row: Record<string, string> = {};
+        headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
+
+        const product = transformRow(row);
+        if (product) {
+          batch.push(product);
+          parsed++;
+
+          if (batch.length >= BATCH_SIZE) {
+            await flushBatch();
+          }
+        }
+      } catch {
+        // skip malformed rows
+      }
+    }
+
+    if (parsed >= limit) break;
+  }
+
+  // Process any remaining leftover line
+  if (leftover.trim() && headers && parsed < limit) {
+    try {
+      const values = parseCSVLine(leftover.trim());
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = values[idx] || ""; });
+      const product = transformRow(row);
+      if (product) { batch.push(product); parsed++; }
+    } catch { /* skip */ }
+  }
+
+  // Final flush
+  await flushBatch();
+
+  return { parsed, imported, errors };
+}
+
+// ── Main handler ────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -241,10 +260,10 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "import";
-    const limitParam = parseInt(url.searchParams.get("limit") || "2000");
-    const feedIds = url.searchParams.get("feeds")?.split(",") || [];
+    const limitParam = parseInt(url.searchParams.get("limit") || "1000");
+    const feedIds = url.searchParams.get("feeds")?.split(",").filter(Boolean) || [];
 
-    // Action: list — return available feeds with fashion filter
+    // ── Action: list ──
     if (action === "list") {
       console.log("Fetching feed list...");
       const response = await fetch(FEED_LIST_URL);
@@ -258,11 +277,8 @@ serve(async (req) => {
       for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
         const feed: Record<string, string> = {};
-        headers.forEach((h, idx) => {
-          feed[h.trim()] = values[idx] || "";
-        });
+        headers.forEach((h, idx) => { feed[h.trim()] = values[idx] || ""; });
 
-        // Only include fashion-relevant or active feeds
         const vertical = (feed["Vertical"] || "").toLowerCase();
         const name = (feed["Advertiser Name"] || "").toLowerCase();
         const feedName = (feed["Feed Name"] || "").toLowerCase();
@@ -294,111 +310,92 @@ serve(async (req) => {
       );
     }
 
-    // Action: import — import products from specific feeds or all active feeds
+    // ── Action: import (one feed at a time) ──
+    // IMPORTANT: To stay within memory limits, import ONE feed per invocation.
+    // The admin UI should call this once per feed with ?feeds=FXXX&limit=1000
+
     console.log("Starting AWIN feed import...");
 
-    // If no specific feeds requested, fetch the feed list and pick active ones
     let feedUrls: { id: string; url: string; name: string }[] = [];
 
     if (feedIds.length > 0) {
-      // Import specific feed IDs
       feedUrls = feedIds.map(id => ({
         id,
         url: `https://ui.awin.com/productdata-darwin-download/publisher/${PUBLISHER_ID}/${API_KEY}/1/feed/${id}.csv.gz`,
         name: id,
       }));
     } else {
-      // Fetch feed list and import all active feeds
+      // No feeds specified → list active feeds but only import the FIRST one
+      // to avoid memory issues. The admin UI should loop through feeds one by one.
       console.log("Fetching feed list to find active feeds...");
       const listResponse = await fetch(FEED_LIST_URL);
       if (!listResponse.ok) throw new Error(`Feed list fetch failed: ${listResponse.status}`);
 
       const csvContent = await listResponse.text();
       const lines = csvContent.split("\n").filter(l => l.trim());
-      const headers = parseCSVLine(lines[0]);
+      const listHeaders = parseCSVLine(lines[0]);
 
+      const allActive: { id: string; url: string; name: string }[] = [];
       for (let i = 1; i < lines.length; i++) {
         const values = parseCSVLine(lines[i]);
         const feed: Record<string, string> = {};
-        headers.forEach((h, idx) => {
-          feed[h.trim()] = values[idx] || "";
-        });
+        listHeaders.forEach((h, idx) => { feed[h.trim()] = values[idx] || ""; });
 
         if (feed["Membership Status"] === "active" && feed["URL"]) {
-          feedUrls.push({
-            id: feed["Feed ID"],
-            url: feed["URL"],
-            name: feed["Advertiser Name"],
-          });
+          allActive.push({ id: feed["Feed ID"], url: feed["URL"], name: feed["Advertiser Name"] });
         }
       }
 
-      console.log(`Found ${feedUrls.length} active feeds`);
-    }
+      console.log(`Found ${allActive.length} active feeds — importing first one only to avoid memory limits`);
 
-    if (feedUrls.length === 0) {
+      if (allActive.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "No active feeds found. Join advertiser programs on AWIN first, or specify feed IDs with ?feeds=F1400",
+            imported: 0,
+            allActiveFeeds: [],
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      feedUrls = [allActive[0]];
+
+      // Return the full list so the admin UI can queue the rest
       return new Response(
         JSON.stringify({
           success: true,
-          message: "No feeds to import. Join advertiser programs on AWIN first, or specify feed IDs with ?feeds=F1400,F295",
-          imported: 0,
+          message: `Found ${allActive.length} active feeds. Import them one at a time using ?feeds=FXXX&limit=1000`,
+          allActiveFeeds: allActive.map(f => ({ feed_id: f.id, name: f.name })),
+          importing: allActive[0],
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Process each requested feed with streaming
+    const feedResults: Record<string, unknown>[] = [];
     let totalImported = 0;
     let totalErrors = 0;
-    const feedResults: Record<string, unknown>[] = [];
 
     for (const feed of feedUrls) {
       try {
         console.log(`\nImporting feed ${feed.id} (${feed.name})...`);
-        const rows = await fetchFeed(feed.url, limitParam);
-        console.log(`Parsed ${rows.length} rows from ${feed.name}`);
+        const result = await processFeedStreaming(feed.url, limitParam, supabase);
 
-        // Transform rows to products
-        const products = rows
-          .map(transformRow)
-          .filter((p): p is Record<string, unknown> => p !== null);
-
-        console.log(`${products.length} valid products from ${feed.name}`);
-
-        // Upsert in batches
-        let feedImported = 0;
-        let feedErrors = 0;
-        const batchSize = 100;
-
-        for (let i = 0; i < products.length; i += batchSize) {
-          const batch = products.slice(i, i + batchSize);
-
-          const { error: upsertError } = await supabase
-            .from("products")
-            .upsert(batch, {
-              onConflict: "provider,provider_product_id",
-              ignoreDuplicates: false,
-            });
-
-          if (upsertError) {
-            console.error(`Batch error for ${feed.name}:`, upsertError.message);
-            feedErrors += batch.length;
-          } else {
-            feedImported += batch.length;
-          }
-        }
-
-        totalImported += feedImported;
-        totalErrors += feedErrors;
+        totalImported += result.imported;
+        totalErrors += result.errors;
 
         feedResults.push({
           feed_id: feed.id,
           advertiser: feed.name,
-          parsed: rows.length,
-          imported: feedImported,
-          errors: feedErrors,
+          parsed: result.parsed,
+          imported: result.imported,
+          errors: result.errors,
         });
 
-        console.log(`Feed ${feed.name}: ${feedImported} imported, ${feedErrors} errors`);
+        console.log(`Feed ${feed.name}: ${result.imported} imported, ${result.errors} errors`);
       } catch (feedError) {
         console.error(`Failed to import feed ${feed.id} (${feed.name}):`, feedError);
         feedResults.push({
@@ -412,7 +409,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Imported ${totalImported} products from ${feedUrls.length} feeds`,
+        message: `Imported ${totalImported} products from ${feedUrls.length} feed(s)`,
         totalImported,
         totalErrors,
         feeds: feedResults,
@@ -426,10 +423,7 @@ serve(async (req) => {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
