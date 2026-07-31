@@ -4,7 +4,7 @@ import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -23,6 +23,9 @@ export default function Auth() {
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const redirectTo = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/";
   const { toast } = useToast();
 
   const validateForm = () => {
@@ -71,7 +74,7 @@ export default function Auth() {
             title: "Welcome to ALT-FIT!",
             description: "Your account has been created successfully.",
           });
-          navigate("/");
+          navigate(redirectTo);
         }
       } else {
         const { error } = await signIn(email, password);
@@ -86,7 +89,7 @@ export default function Auth() {
             title: "Welcome back!",
             description: "You've been signed in successfully.",
           });
-          navigate("/");
+          navigate(redirectTo);
         }
       }
     } finally {
