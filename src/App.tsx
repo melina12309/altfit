@@ -15,6 +15,7 @@ import MomentDetail from "./pages/MomentDetail";
 import OutfitBuilder from "./pages/OutfitBuilder";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
