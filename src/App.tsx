@@ -15,6 +15,7 @@ import MomentDetail from "./pages/MomentDetail";
 import OutfitBuilder from "./pages/OutfitBuilder";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/explore/:momentId" element={<MomentDetail />} />
               <Route path="/builder" element={<OutfitBuilder />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

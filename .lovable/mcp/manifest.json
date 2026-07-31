@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://mqpcwdsdyqlxigppjmlc.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "style-muse",
+      "version": "0.1.0",
+      "title": "Style Muse"
+    },
+    "tools": [
+      {
+        "name": "search_products",
+        "title": "Search products",
+        "description": "Search the ALT-FIT product catalog by keyword, category, gender, and maximum price. Returns shoppable items with prices and affiliate links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Keyword to match against product title or brand."
+            },
+            "category": {
+              "type": "string",
+              "description": "Product category, e.g. top, bottom, shoes, bag."
+            },
+            "gender": {
+              "type": "string",
+              "description": "Target gender, e.g. women, men, unisex."
+            },
+            "max_price": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Maximum price in the catalog currency."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Number of products to return (default 10)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_style_profile",
+        "title": "Get style profile",
+        "description": "Get the signed-in user's saved style preferences (favourite styles, budget, sizes) to personalise outfit suggestions.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_saved_outfits",
+        "title": "List saved outfits",
+        "description": "List the signed-in user's saved outfits, newest first, including items and total price.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Number of outfits to return (default 10)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "save_outfit",
+        "title": "Save outfit",
+        "description": "Save a new outfit to the signed-in user's ALT-FIT collection.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Name of the look."
+            },
+            "gender": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Target gender, e.g. women, men, unisex."
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "description": "Item category, e.g. top, bottom, shoes, bag."
+                  },
+                  "product_id": {
+                    "type": "string",
+                    "description": "Product id from search_products, when the item is from the catalog."
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Item name."
+                  },
+                  "brand": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Item price."
+                  },
+                  "image_url": {
+                    "type": "string"
+                  },
+                  "affiliate_url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "category",
+                  "name",
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "description": "The pieces that make up the outfit."
+            },
+            "budget": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Optional budget for the look."
+            }
+          },
+          "required": [
+            "name",
+            "gender",
+            "items"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
